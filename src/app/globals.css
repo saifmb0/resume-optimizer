@@ -1,0 +1,297 @@
+@import "tailwindcss";
+
+/* Mobile-first responsive improvements */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure proper touch targets on mobile */
+button, 
+input, 
+textarea, 
+select {
+  min-height: 44px; /* Minimum touch target size */
+}
+
+/* Improve text readability on mobile */
+body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Better focus indicators for keyboard navigation */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Responsive scroll behavior */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Light mode (default) */
+html {
+  background-color: #f9fafb;
+}
+
+html body {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+html .bg-white {
+  background-color: #ffffff;
+}
+
+html .bg-gray-50 {
+  background-color: #f9fafb;
+}
+
+html .text-gray-900 {
+  color: #111827;
+}
+
+html .text-gray-600 {
+  color: #4b5563;
+}
+
+html .text-gray-700 {
+  color: #374151;
+}
+
+html .bg-blue-100 {
+  background-color: #dbeafe;
+}
+
+html .bg-green-100 {
+  background-color: #dcfce7;
+}
+
+html .bg-purple-100 {
+  background-color: #f3e8ff;
+}
+
+/* Dark mode styles */
+html.dark {
+  background-color: #0a0a0a !important;
+}
+
+html.dark body {
+  background-color: #0a0a0a !important;
+  color: #f4f4f5 !important;
+}
+
+html.dark .bg-white {
+  background-color: #18181b !important;
+}
+
+html.dark .bg-gray-50 {
+  background-color: #09090b !important;
+}
+
+html.dark .text-gray-900 {
+  color: #f4f4f5 !important;
+}
+
+html.dark .text-gray-600 {
+  color: #a1a1aa !important;
+}
+
+html.dark .text-gray-700 {
+  color: #d4d4d8 !important;
+}
+
+html.dark .text-gray-800 {
+  color: #e4e4e7 !important;
+}
+
+html.dark .bg-blue-100 {
+  background-color: #1e3a8a !important;
+}
+
+html.dark .bg-green-100 {
+  background-color: #14532d !important;
+}
+
+html.dark .bg-purple-100 {
+  background-color: #581c87 !important;
+}
+
+html.dark .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+html.dark .text-green-600 {
+  color: #4ade80 !important;
+}
+
+html.dark .text-purple-600 {
+  color: #a855f7 !important;
+}
+
+/* Dark mode toggle button styles */
+html .bg-gray-200 {
+  background-color: #e5e7eb;
+}
+
+html .bg-gray-300 {
+  background-color: #d1d5db;
+}
+
+html.dark .bg-gray-200 {
+  background-color: #374151 !important;
+}
+
+html.dark .bg-gray-300 {
+  background-color: #4b5563 !important;
+}
+
+html.dark .bg-gray-700 {
+  background-color: #374151 !important;
+}
+
+html.dark .bg-gray-600 {
+  background-color: #4b5563 !important;
+}
+
+/* Enhanced text contrast for better visibility in light mode */
+html .text-gray-500 {
+  color: #374151;
+}
+
+html .text-gray-400 {
+  color: #4b5563;
+}
+
+/* Ensure form labels are dark enough */
+html .text-gray-800 {
+  color: #1f2937;
+}
+
+/* Make sure placeholder text is visible */
+html input::placeholder,
+html textarea::placeholder {
+  color: #6b7280;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #9ca3af;
+}
+
+/* Ensure button text remains high contrast */
+html .text-white {
+  color: #ffffff;
+}
+
+/* Additional specific overrides for better readability */
+html .text-sm {
+  color: #374151;
+}
+
+html.dark .text-sm {
+  color: #d1d5db;
+}
+
+/* Ensure all text elements have proper contrast */
+html label {
+  color: #1f2937 !important;
+}
+
+html.dark label {
+  color: #f3f4f6 !important;
+}
+
+/* Override any remaining light text in light mode */
+html .text-gray-300 {
+  color: #4b5563;
+}
+
+html .text-gray-400 {
+  color: #374151;
+}
+
+html .text-gray-500 {
+  color: #1f2937;
+}
+
+/* Keep dark mode colors for good contrast */
+html.dark .text-gray-300 {
+  color: #d1d5db !important;
+}
+
+html.dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+html.dark .text-gray-500 {
+  color: #6b7280 !important;
+}
+
+/* Force high contrast for all text elements in light mode */
+html .text-gray-600 {
+  color: #1f2937 !important;
+}
+
+html .text-gray-700 {
+  color: #111827 !important;
+}
+
+html .text-gray-800 {
+  color: #000000 !important;
+}
+
+/* Ensure form field text is dark enough */
+html input,
+html textarea,
+html select {
+  color: #111827 !important;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: #f3f4f6 !important;
+}
+
+/* Ensure all paragraph text is readable */
+html p {
+  color: #111827;
+}
+
+html.dark p {
+  color: #e5e7eb;
+}
+
+/* Make sure headings are very visible */
+html h1,
+html h2,
+html h3,
+html h4,
+html h5,
+html h6 {
+  color: #000000;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #ffffff;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
