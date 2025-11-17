@@ -7,10 +7,7 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
+          
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
@@ -40,6 +37,7 @@ const nextConfig: NextConfig = {
               "frame-src https://pagead2.googlesyndication.com",
               "object-src 'none'",
               "base-uri 'self'",
+              "frame-ancestors 'self' https://seifeldin-mahmoud.vercel.app",
               "form-action 'self'"
             ].join('; ')
           }
