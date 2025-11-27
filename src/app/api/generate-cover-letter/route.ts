@@ -173,7 +173,7 @@ Generate the ${type} in a professional format.`
     // Call Gemini API with separate system instruction and user prompt
     console.log('Attempting to generate content with Gemini...')
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-3-pro",
       config: {
         systemInstruction: systemInstruction,
       },
