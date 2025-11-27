@@ -32,10 +32,10 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('Failed to generate cover letter:', response.statusText)
+        console.error('Failed to generate output:', response.statusText)
         console.error('Status:', response.status)
         console.error('Error details:', errorData)
-        alert(`Failed to generate cover letter: ${errorData.error || response.statusText}`)
+        alert(`Failed to generate output: ${errorData.error || response.statusText}`)
         return
       }
 
@@ -43,7 +43,7 @@ export default function Home() {
       setCoverLetter(result.coverLetter)
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to generate cover letter. Please try again.')
+      alert('Failed to generate output. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -100,7 +100,7 @@ export default function Home() {
                     </svg>
                   </div>
                   <h3 className="text-lg sm:text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Lightning Fast</h3>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Generate professional cover letters in under 30 seconds</p>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Generate professional Resumes & Cover letters in under 30 seconds</p>
                 </div>
 
                 <div className="text-center">
@@ -131,7 +131,7 @@ export default function Home() {
               <div className="space-y-4 sm:space-y-6">
                 <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 sm:p-6 shadow border dark:border-zinc-700">
                   <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">How does this work?</h3>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Simply paste the job description and your resume, choose your output, and our AI will generate a personalized cover letter tailored to the specific job.</p>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Simply paste the job description and your resume, choose your output, and our AI will generate a personalized document tailored to the specific job.</p>
                 </div>
 
                 <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 sm:p-6 shadow border dark:border-zinc-700">
@@ -141,7 +141,7 @@ export default function Home() {
 
                 <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 sm:p-6 shadow border dark:border-zinc-700">
                   <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Do you store my information?</h3>
-                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">No, we don&apos;t store any of your personal information, resume data, or generated cover letters. Everything is processed in real-time and discarded.</p>
+                  <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">No, we don&apos;t store any of your personal information, resume data, or generated content. Everything is processed in real-time and discarded.</p>
                 </div>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function Home() {
 
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="mb-4 text-white text-sm sm:text-base">© 2025 AI Cover Letter Generator. Made with ❤️ for job seekers worldwide.</p>
+          <p className="mb-4 text-white text-sm sm:text-base">© 2025 AI Resume Generator. Made with ❤️ for job seekers worldwide.</p>
           <p className="text-gray-400 dark:text-gray-300 text-xs sm:text-sm">
             Powered by Google Gemini AI • No login required • 100% free
           </p>
