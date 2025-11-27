@@ -168,7 +168,7 @@ Generate only the ${type} content in a professional format.`
     // Call Gemini API
     console.log('Attempting to generate content with Gemini...')
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-pro",
       contents: prompt,
     })
     
