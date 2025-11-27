@@ -4,7 +4,7 @@ import { useState } from 'react'
 import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
-import AdSense from '@/components/AdSense'
+//import AdSense from '@/components/AdSense'
 
 interface FormData {
   jobDescription: string
