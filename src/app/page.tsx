@@ -12,8 +12,15 @@ interface FormData {
   tone: string
 }
 
+interface MatchAnalysis {
+  score: number
+  reasoning: string
+  missingKeywords: string[]
+}
+
 export default function Home() {
   const [coverLetter, setCoverLetter] = useState<string>('')
+  const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [formData, setFormData] = useState<FormData | null>(null)
 
