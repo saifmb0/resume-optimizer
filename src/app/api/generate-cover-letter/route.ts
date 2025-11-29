@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, Type } from '@google/genai'
 import { inputSchema, sanitizeInput, detectPromptInjectionWithContext, containsMaliciousContent } from '@/utils/validation'
 import { isRateLimited, getClientIP } from '@/utils/rateLimit'
 import { SecurityLogger } from '@/utils/securityLogger'
@@ -12,6 +12,18 @@ interface GenerateRequest {
   resume: string
   tone: ToneType
 }
+
+// Response schema for Zod validation of AI output
+const analysisResponseSchema = z.object({
+  matchAnalysis: z.object({
+    score: z.number().min(0).max(100),
+    reasoning: z.string(),
+    missingKeywords: z.array(z.string()),
+  }),
+  generatedDocument: z.string(),
+})
+
+type AnalysisResponse = z.infer<typeof analysisResponseSchema>
 
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request)
