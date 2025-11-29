@@ -48,6 +48,9 @@ export default function Home() {
 
       const result = await response.json()
       setCoverLetter(result.coverLetter)
+      if (result.matchAnalysis) {
+        setMatchAnalysis(result.matchAnalysis)
+      }
     } catch (error) {
       console.error('Error:', error)
       alert('Failed to generate output. Please try again.')
@@ -64,6 +67,7 @@ export default function Home() {
 
   const handleStartOver = () => {
     setCoverLetter('')
+    setMatchAnalysis(null)
     setFormData(null)
   }
 
@@ -157,6 +161,7 @@ export default function Home() {
           <>
             <CoverLetterResult
               coverLetter={coverLetter}
+              matchAnalysis={matchAnalysis ?? undefined}
               onRegenerate={handleRegenerate}
               isLoading={isLoading}
             />
