@@ -139,11 +139,11 @@ export async function POST(request: NextRequest) {
 
     // Create the secure prompt based on the tone
     const toneInstructions: Record<ToneType, string> = {
-      CV: 'a personalized CV for this position.',
-      CoverLetter: 'a cover letter for this position',
-      Wdywtwh: 'a brief paragraph explaining why you want to work at this position.',
+      CV: 'a personalized CV/resume tailored for this position',
+      CoverLetter: 'a professional cover letter for this position',
+      Wdywtwh: 'a compelling "Why I want to work here" statement',
     }
-    const type = toneInstructions[tone]
+    const documentType = toneInstructions[tone]
     
     // System instruction - defines AI behavior and security constraints
     const systemInstruction = `You are a professional career advisor that creates high-quality career documents.
