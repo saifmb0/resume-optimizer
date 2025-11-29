@@ -235,14 +235,16 @@ Perform your analysis and generate the optimized ${documentType}.`
       model: "gemini-2.5-pro",
       config: {
         systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: responseSchema,
       },
       contents: userPrompt,
     })
     
     console.log('Gemini API response received')
-    const coverLetter = response.text
+    const rawText = response.text
 
-    if (!coverLetter) {
+    if (!rawText) {
       console.error('No content generated in response')
       return NextResponse.json(
         { error: 'No content generated. Please try again.' },
@@ -250,17 +252,38 @@ Perform your analysis and generate the optimized ${documentType}.`
       )
     }
 
-    // Basic output validation - ensure we got reasonable content
-    if (coverLetter.length < 50) {
-      console.error('Generated content too short:', coverLetter.length, 'characters')
+    // Parse and validate JSON response
+    let parsedResponse: AnalysisResponse
+    try {
+      const jsonResponse = JSON.parse(rawText)
+      parsedResponse = analysisResponseSchema.parse(jsonResponse)
+    } catch (parseError) {
+      console.error('Failed to parse AI response as valid JSON:', parseError)
+      console.error('Raw response:', rawText.substring(0, 500))
+      return NextResponse.json(
+        { error: 'AI returned invalid response format. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    // Validate output quality
+    if (parsedResponse.generatedDocument.length < 50) {
+      console.error('Generated document too short:', parsedResponse.generatedDocument.length, 'characters')
       return NextResponse.json(
         { error: 'Generated content appears incomplete. Please try again.' },
         { status: 500 }
       )
     }
 
-    console.log('Content generated successfully')
-    return NextResponse.json({ coverLetter })
+    console.log('Content generated successfully with score:', parsedResponse.matchAnalysis.score)
+    
+    // Return the full analysis response
+    return NextResponse.json({
+      matchAnalysis: parsedResponse.matchAnalysis,
+      generatedDocument: parsedResponse.generatedDocument,
+      // Keep backward compatibility
+      coverLetter: parsedResponse.generatedDocument,
+    })
 
   } catch (error: unknown) {
     // Log error details for debugging (but don't expose to client)
