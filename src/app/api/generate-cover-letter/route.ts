@@ -214,23 +214,23 @@ OUTPUT FORMAT:
     }
 
     // User prompt - contains only the data to process
-    const userPrompt = `Create ${type}
+    const userPrompt = `Analyze the fit between this job description and resume, then generate ${documentType}.
 
 === JOB DESCRIPTION ===
 ${jobDescription}
 
-=== APPLICANT BACKGROUND ===
+=== APPLICANT RESUME/BACKGROUND ===
 ${resume}
 
-Generate the ${type} in a professional format.`
+Perform your analysis and generate the optimized ${documentType}.`
 
     // Initialize Gemini API client
     const ai = new GoogleGenAI({
       apiKey
     })
 
-    // Call Gemini API with separate system instruction and user prompt
-    console.log('Attempting to generate content with Gemini...')
+    // Call Gemini API with JSON mode and structured output
+    console.log('Attempting to generate content with Gemini (JSON mode)...')
     const response = await ai.models.generateContent({
       model: "gemini-3-pro",
       config: {
