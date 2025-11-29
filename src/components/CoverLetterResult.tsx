@@ -408,6 +408,55 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           </div>
         </div>
 
+        {/* ATS Match Analysis Section */}
+        {matchAnalysis && (
+          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-zinc-800 dark:to-zinc-800 rounded-lg border border-blue-200 dark:border-zinc-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <svg className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              ATS Match Analysis
+            </h3>
+            
+            <div className="flex flex-col md:flex-row gap-6">
+              {/* Score Gauge */}
+              <div className="flex-shrink-0 flex justify-center md:justify-start">
+                <ATSScoreGauge score={matchAnalysis.score} />
+              </div>
+              
+              {/* Analysis Details */}
+              <div className="flex-1 space-y-4">
+                {/* Reasoning */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Analysis</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {matchAnalysis.reasoning}
+                  </p>
+                </div>
+                
+                {/* Missing Keywords */}
+                {matchAnalysis.missingKeywords && matchAnalysis.missingKeywords.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Keywords to Consider Adding
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {matchAnalysis.missingKeywords.map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gray-50 dark:bg-zinc-800 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-zinc-700">
           <div className="text-gray-900 dark:text-gray-100 leading-relaxed space-y-3 sm:space-y-4 text-sm sm:text-base">
             {coverLetter.split('\n').map((line, index) => {
