@@ -4,13 +4,71 @@ import { useState } from 'react'
 import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import jsPDF from 'jspdf'
 
+interface MatchAnalysis {
+  score: number
+  reasoning: string
+  missingKeywords: string[]
+}
+
 interface CoverLetterResultProps {
   coverLetter: string
+  matchAnalysis?: MatchAnalysis
   onRegenerate: () => void
   isLoading: boolean
 }
 
-export default function CoverLetterResult({ coverLetter, onRegenerate, isLoading }: CoverLetterResultProps) {
+// ATS Score Gauge Component
+function ATSScoreGauge({ score }: { score: number }) {
+  const radius = 45
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference - (score / 100) * circumference
+  
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return { stroke: '#22c55e', text: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' }
+    if (score >= 60) return { stroke: '#eab308', text: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' }
+    return { stroke: '#ef4444', text: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' }
+  }
+  
+  const colors = getScoreColor(score)
+  
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-28 h-28">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="8"
+            className="text-gray-200 dark:text-zinc-700"
+          />
+          {/* Progress circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="none"
+            stroke={colors.stroke}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className={`text-2xl font-bold ${colors.text}`}>{score}%</span>
+        </div>
+      </div>
+      <span className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-400">ATS Match Score</span>
+    </div>
+  )
+}
+
+export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, isLoading }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
