@@ -232,7 +232,7 @@ Perform your analysis and generate the optimized ${documentType}.`
     // Call Gemini API with JSON mode and structured output
     console.log('Attempting to generate content with Gemini (JSON mode)...')
     const response = await ai.models.generateContent({
-      model: "gemini-3-pro",
+      model: "gemini-2.5-pro",
       config: {
         systemInstruction: systemInstruction,
       },
