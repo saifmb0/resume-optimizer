@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
               "frame-src https://pagead2.googlesyndication.com",
               "object-src 'none'",
               "base-uri 'self'",
-              "frame-ancestors 'self' http://localhost:3000 https://seifeldin-mahmoud.vercel.app",
+              "frame-ancestors 'self' http://localhost:3000 https://seifeldin-mahmoud.vercel.app https://*.saifmb.com https://saifmb.com",
               "form-action 'self'"
             ].join('; ')
           }
