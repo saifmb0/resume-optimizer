@@ -185,7 +185,7 @@ export default function Home() {
       <footer className="bg-gray-900 dark:bg-zinc-950 text-white py-8 sm:py-12 mt-12 sm:mt-5">
 
         <div className="max-w-4xl mx-auto px-4 sm:px-8 text-center mb-4">
-          <a href="https://saifmb0.github.io">
+          <a href="https://saifmb.com">
             <span className="text-blue-400 hover:text-blue-300 transition-colors duration-200 text-lg sm:text-2xl font-bold">
               Seifeldin Mahmoud
             </span>
