@@ -1,30 +1,24 @@
 import { NextRequest } from 'next/server'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
 
-// Simple in-memory rate limiting for basic protection
-// For production, consider using Redis with @upstash/ratelimit
-const requestCounts = new Map<string, { count: number; resetTime: number }>()
+// Distributed rate limiting using Redis (works in serverless)
+// Sliding window: 10 requests per 60 seconds with burst allowance
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '60 s'),
+  analytics: true,
+  prefix: 'cvmaker:ratelimit',
+})
 
-export function isRateLimited(ip: string, maxRequests: number = 10, windowMs: number = 60000): boolean {
-  const now = Date.now()
-  
-  if (!requestCounts.has(ip)) {
-    requestCounts.set(ip, { count: 1, resetTime: now + windowMs })
-    return false
-  }
-  
-  const requestData = requestCounts.get(ip)!
-  
-  if (now > requestData.resetTime) {
-    requestCounts.set(ip, { count: 1, resetTime: now + windowMs })
-    return false
-  }
-  
-  if (requestData.count >= maxRequests) {
-    return true
-  }
-  
-  requestData.count++
-  return false
+/**
+ * Check if a request should be rate limited
+ * @param identifier - Unique identifier (usually client IP)
+ * @returns true if rate limited, false if allowed
+ */
+export async function checkRateLimit(identifier: string): Promise<boolean> {
+  const { success } = await ratelimit.limit(identifier)
+  return !success // Return true if limited (request denied)
 }
 
 export function getClientIP(request: NextRequest): string {
@@ -39,13 +33,3 @@ export function getClientIP(request: NextRequest): string {
   
   return realIP || cfConnectingIP || '127.0.0.1'
 }
-
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now()
-  for (const [ip, data] of requestCounts.entries()) {
-    if (now > data.resetTime) {
-      requestCounts.delete(ip)
-    }
-  }
-}, 60000) // Cleanup every minute

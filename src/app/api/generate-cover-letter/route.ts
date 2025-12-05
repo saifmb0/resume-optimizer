@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI, Type } from '@google/genai'
 import { inputSchema, sanitizeInput, detectPromptInjectionWithContext, containsMaliciousContent } from '@/utils/validation'
-import { isRateLimited, getClientIP } from '@/utils/rateLimit'
+import { checkRateLimit, getClientIP } from '@/utils/rateLimit'
 import { SecurityLogger } from '@/utils/securityLogger'
 import { z } from 'zod'
 
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request)
   
   try {
-    // Rate limiting check
-    if (isRateLimited(clientIP, 5, 60000)) { // 10 requests per minute
+    // Rate limiting check (Redis-backed, works in serverless)
+    if (await checkRateLimit(clientIP)) {
       SecurityLogger.logRateLimitExceeded(clientIP, '/api/generate-cover-letter')
       return NextResponse.json(
         { error: 'Too many requests. Please wait before trying again.' },
