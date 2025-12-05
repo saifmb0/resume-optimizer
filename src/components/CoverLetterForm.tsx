@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { DocumentTextIcon, BriefcaseIcon, UserIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { inputSchema, containsMaliciousContent, detectPromptInjectionWithContext } from '@/utils/validation'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { z } from 'zod'
 
 interface FormData {
@@ -29,11 +30,16 @@ const toneOptions = [
 ]
 
 export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFormProps) {
-  const [formData, setFormData] = useState<FormData>({
-    jobDescription: '',
-    resume: '',
-    tone: 'CV'
-  })
+  // Persist form data to localStorage to prevent data loss on refresh
+  const [formData, setFormData, clearFormData] = usePersistedState<FormData>(
+    'cv_draft',
+    {
+      jobDescription: '',
+      resume: '',
+      tone: 'CV'
+    },
+    500 // Debounce saves by 500ms
+  )
   
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [isValidating, setIsValidating] = useState(false)
@@ -206,20 +212,37 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
 
           {/* Generate Button */}
           <div className="text-center">
-            <button
-              type="submit"
-              disabled={isLoading || isValidating || !formData.jobDescription.trim() || !formData.resume.trim() || Object.keys(errors).length > 0}
-              className="bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-gray-500 dark:disabled:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-6 sm:px-8 rounded-md transition-colors duration-200 flex items-center mx-auto text-sm sm:text-base"
-            >
-              {isLoading || isValidating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                  {isValidating ? 'Validating...' : 'Generating...'}
-                </>
-              ) : (
-                'Generate'
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="submit"
+                disabled={isLoading || isValidating || !formData.jobDescription.trim() || !formData.resume.trim() || Object.keys(errors).length > 0}
+                className="bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:bg-gray-500 dark:disabled:bg-gray-600 text-white font-semibold py-2 sm:py-3 px-6 sm:px-8 rounded-md transition-colors duration-200 flex items-center text-sm sm:text-base"
+              >
+                {isLoading || isValidating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                    {isValidating ? 'Validating...' : 'Generating...'}
+                  </>
+                ) : (
+                  'Generate'
+                )}
+              </button>
+              
+              {/* Clear Draft Button */}
+              {(formData.jobDescription.trim() || formData.resume.trim()) && !isLoading && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearFormData()
+                    setFormData({ jobDescription: '', resume: '', tone: 'CV' })
+                    setErrors({})
+                  }}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm underline"
+                >
+                  Clear Draft
+                </button>
               )}
-            </button>
+            </div>
             
             {/* Security Notice */}
             <p className="mt-3 sm:mt-4 text-xs text-gray-500 dark:text-gray-400 max-w-md mx-auto px-4">
