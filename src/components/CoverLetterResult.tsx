@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-import jsPDF from 'jspdf'
+import { pdf } from '@react-pdf/renderer'
+import { CvDocument } from '@/documents/CvDocument'
 
 interface MatchAnalysis {
   score: number
@@ -81,300 +82,24 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
     }
   }
 
-  const handleDownloadPDF = () => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const pageHeight = doc.internal.pageSize.getHeight()
-    const margin = 20
-    const textWidth = pageWidth - 2 * margin
-    let yPosition = margin
-    
-    // Set explicit colors for PDF - always black text on white background
-    doc.setTextColor(0, 0, 0) // Black text
-    doc.setFillColor(255, 255, 255) // White background
-    
-    // Fill the entire page with white background
-    doc.rect(0, 0, pageWidth, pageHeight, 'F')
-    
-    // Process each line with the same logic as the website display
-    const lines = coverLetter.split('\n')
-    
-    for (let index = 0; index < lines.length; index++) {
-      const trimmedLine = lines[index].trim()
+  const handleDownloadPDF = async () => {
+    try {
+      // Generate PDF using declarative React-PDF renderer
+      const blob = await pdf(<CvDocument content={coverLetter} />).toBlob()
       
-      // Empty lines - add space (reduced from 3 to 2)
-      if (trimmedLine === '') {
-        yPosition += 2
-        continue
-      }
-      
-      // Check if we need a new page before processing
-      if (yPosition > pageHeight - 40) {
-        doc.addPage()
-        doc.setTextColor(0, 0, 0)
-        doc.setFillColor(255, 255, 255)
-        doc.rect(0, 0, pageWidth, pageHeight, 'F')
-        yPosition = margin
-      }
-      
-      // Bold headers (name, section headers) - same as website logic
-      if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
-        const text = trimmedLine.replace(/\*\*/g, '')
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(0, 0, 0)
-        
-        if (index === 0) {
-          // Name at the top - centered, larger font (reduced spacing)
-          doc.setFontSize(18)
-          doc.text(text, pageWidth / 2, yPosition, { align: 'center' })
-          yPosition += 8 // Reduced from 12
-        } else {
-          // Section headers (reduced spacing)
-          doc.setFontSize(14)
-          doc.text(text, margin, yPosition)
-          yPosition += 6 // Reduced from 8
-          // Add underline to match border-b - extend to end of page
-          doc.setDrawColor(0, 0, 0)
-          doc.setLineWidth(0.5)
-          doc.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2)
-          yPosition += 4 // Reduced from 8
-        }
-        continue
-      }
-      
-      // Mixed bold text with following content (like **Job Title**Content)
-      if (trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
-        doc.setFontSize(10) // text-sm
-        const parts = trimmedLine.split('**')
-        let xPosition = margin
-        const lineHeight = 5 // Reduced from 6
-        
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i]
-          
-          if (part.trim() !== '') {
-            // Check if this appears to be a new entry (same logic as website)
-            const isNewEntry = i > 0 && 
-                             i % 2 === 1 && 
-                             part.match(/^[A-Z]/) && 
-                             !part.includes('•') &&
-                             i > 1
-            
-            if (isNewEntry) {
-              // Break to new line for new entries
-              yPosition += lineHeight
-              xPosition = margin
-              if (yPosition > pageHeight - 40) {
-                doc.addPage()
-                doc.setTextColor(0, 0, 0)
-                doc.setFillColor(255, 255, 255)
-                doc.rect(0, 0, pageWidth, pageHeight, 'F')
-                yPosition = margin
-              }
-            }
-            
-            if (i % 2 === 1) {
-              // Odd indices are bold text (font-semibold)
-              doc.setFont('helvetica', 'bold')
-              doc.setTextColor(0, 0, 0)
-            } else {
-              // Even indices are normal text
-              doc.setFont('helvetica', 'normal')
-              doc.setTextColor(0, 0, 0)
-            }
-            
-            // Check if text fits on current line
-            const partWidth = doc.getTextWidth(part)
-            if (xPosition + partWidth > pageWidth - margin && xPosition > margin) {
-              yPosition += lineHeight
-              xPosition = margin
-              if (yPosition > pageHeight - 40) {
-                doc.addPage()
-                doc.setTextColor(0, 0, 0)
-                doc.setFillColor(255, 255, 255)
-                doc.rect(0, 0, pageWidth, pageHeight, 'F')
-                yPosition = margin
-              }
-            }
-            
-            doc.text(part, xPosition, yPosition)
-            xPosition += partWidth
-          }
-        }
-        yPosition += lineHeight + 1 // Reduced spacing between entries
-        continue
-      }
-      
-      // Contact info or job details with pipes - centered
-      if (trimmedLine.includes('|')) {
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(10) // text-sm
-        const text = trimmedLine.split('|').map(part => part.trim()).join(' • ')
-        doc.text(text, pageWidth / 2, yPosition, { align: 'center' })
-        yPosition += 6 // Reduced spacing
-        continue
-      }
-      
-      // Bullet points
-      if (trimmedLine.startsWith('*   ')) {
-        const bulletText = trimmedLine.replace('*   ', '')
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(10) // text-sm
-        const bulletIndent = 15 // ml-4
-        const lineHeight = 5 // Reduced from 6
-        
-        // Add bullet point
-        doc.text('•', margin + 5, yPosition)
-        
-        // Handle bold formatting in bullet text (same as website)
-        if (bulletText.includes('**')) {
-          const parts = bulletText.split('**')
-          let xPosition = margin + bulletIndent
-          
-          for (let partIndex = 0; partIndex < parts.length; partIndex++) {
-            const part = parts[partIndex]
-            if (partIndex % 2 === 1) {
-              doc.setFont('helvetica', 'bold') // font-semibold
-              doc.setTextColor(0, 0, 0)
-            } else {
-              doc.setFont('helvetica', 'normal')
-              doc.setTextColor(0, 0, 0)
-            }
-            
-            // Check if we need to wrap to next line
-            const partWidth = doc.getTextWidth(part)
-            if (xPosition + partWidth > pageWidth - margin && xPosition > margin + bulletIndent) {
-              yPosition += lineHeight
-              xPosition = margin + bulletIndent
-              if (yPosition > pageHeight - 40) {
-                doc.addPage()
-                doc.setTextColor(0, 0, 0)
-                doc.setFillColor(255, 255, 255)
-                doc.rect(0, 0, pageWidth, pageHeight, 'F')
-                yPosition = margin
-              }
-            }
-            
-            doc.text(part, xPosition, yPosition)
-            xPosition += partWidth
-          }
-        } else {
-          // Simple bullet text without bold formatting
-          const availableWidth = textWidth - bulletIndent
-          const wrappedLines = doc.splitTextToSize(bulletText, availableWidth)
-          
-          for (let i = 0; i < wrappedLines.length; i++) {
-            if (i > 0) {
-              yPosition += lineHeight
-              if (yPosition > pageHeight - 40) {
-                doc.addPage()
-                doc.setTextColor(0, 0, 0)
-                doc.setFillColor(255, 255, 255)
-                doc.rect(0, 0, pageWidth, pageHeight, 'F')
-                yPosition = margin
-              }
-            }
-            doc.text(wrappedLines[i], margin + bulletIndent, yPosition)
-          }
-        }
-        
-        yPosition += lineHeight + 1 // Reduced spacing after bullet
-        continue
-      }
-      
-      // Job titles or positions (text with pipe and dates) - font-semibold
-      if (trimmedLine.includes(' | ') && !trimmedLine.startsWith('*')) {
-        doc.setFont('helvetica', 'bold') // font-semibold
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(10) // text-sm
-        const jobLineHeight = 5 // Consistent with other sections
-        const wrappedLines = doc.splitTextToSize(trimmedLine, textWidth)
-        
-        for (const wrappedLine of wrappedLines) {
-          if (yPosition > pageHeight - 40) {
-            doc.addPage()
-            doc.setTextColor(0, 0, 0)
-            doc.setFillColor(255, 255, 255)
-            doc.rect(0, 0, pageWidth, pageHeight, 'F')
-            yPosition = margin
-          }
-          doc.text(wrappedLine, margin, yPosition)
-          yPosition += jobLineHeight
-        }
-        yPosition += 1 // Reduced spacing after job titles
-        continue
-      }
-      
-      // Regular paragraphs with single asterisk bold handling (*text*)
-      // First handle single asterisks for inline bold
-      if (trimmedLine.includes('*') && !trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
-        doc.setFontSize(10) // text-sm
-        const parts = trimmedLine.split('*')
-        let xPosition = margin
-        const lineHeight = 5 // Reduced spacing
-        
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i]
-          
-          if (part.trim() !== '' || i === 0 || i === parts.length - 1) {
-            if (i % 2 === 1 && part.trim() !== '') {
-              // Odd indices are bold text (between single *)
-              doc.setFont('helvetica', 'bold')
-              doc.setTextColor(0, 0, 0)
-            } else {
-              // Even indices are normal text
-              doc.setFont('helvetica', 'normal')
-              doc.setTextColor(0, 0, 0)
-            }
-            
-            // Check if text fits on current line
-            const partWidth = doc.getTextWidth(part)
-            if (xPosition + partWidth > pageWidth - margin && xPosition > margin) {
-              yPosition += lineHeight
-              xPosition = margin
-              if (yPosition > pageHeight - 40) {
-                doc.addPage()
-                doc.setTextColor(0, 0, 0)
-                doc.setFillColor(255, 255, 255)
-                doc.rect(0, 0, pageWidth, pageHeight, 'F')
-                yPosition = margin
-              }
-            }
-            
-            doc.text(part, xPosition, yPosition)
-            xPosition += partWidth
-          }
-        }
-        yPosition += lineHeight + 1 // Reduced spacing after paragraph
-        continue
-      }
-      
-      // Regular paragraphs - leading-relaxed
-      doc.setFont('helvetica', 'normal')
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(10) // text-sm
-      const lineHeight = 5 // Reduced from 6
-      
-      // Split text into lines that fit the page width
-      const splitLines = doc.splitTextToSize(trimmedLine, textWidth)
-      
-      for (const splitLine of splitLines) {
-        if (yPosition > pageHeight - 40) {
-          doc.addPage()
-          doc.setTextColor(0, 0, 0)
-          doc.setFillColor(255, 255, 255)
-          doc.rect(0, 0, pageWidth, pageHeight, 'F')
-          yPosition = margin
-        }
-        doc.text(splitLine, margin, yPosition)
-        yPosition += lineHeight
-      }
-      yPosition += 1 // Reduced spacing after paragraphs
+      // Create download link
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'resume.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to generate PDF:', error)
+      alert('Failed to generate PDF. Please try again.')
     }
-    
-    doc.save('resume.pdf')
   }
 
   return (
