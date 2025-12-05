@@ -25,6 +25,11 @@ const analysisResponseSchema = z.object({
 
 type AnalysisResponse = z.infer<typeof analysisResponseSchema>
 
+// Helper to create SSE-formatted data
+function formatSSE(event: string, data: unknown): string {
+  return `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+}
+
 export async function POST(request: NextRequest) {
   const clientIP = getClientIP(request)
   
@@ -229,60 +234,108 @@ Perform your analysis and generate the optimized ${documentType}.`
       apiKey
     })
 
-    // Call Gemini API with JSON mode and structured output
-    console.log('Attempting to generate content with Gemini (JSON mode)...')
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
-      config: {
-        systemInstruction: systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-      },
-      contents: userPrompt,
+    // Use streaming for faster time-to-first-byte
+    console.log('Attempting to generate content with Gemini (streaming JSON mode)...')
+    
+    // Create a readable stream for SSE response
+    const encoder = new TextEncoder()
+    
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // Call Gemini API with streaming
+          const streamResponse = await ai.models.generateContentStream({
+            model: "gemini-2.5-pro",
+            config: {
+              systemInstruction: systemInstruction,
+              responseMimeType: "application/json",
+              responseSchema: responseSchema,
+            },
+            contents: userPrompt,
+          })
+          
+          // Accumulate the full JSON response
+          let fullText = ''
+          
+          for await (const chunk of streamResponse) {
+            const chunkText = chunk.text
+            if (chunkText) {
+              fullText += chunkText
+            }
+          }
+          
+          console.log('Gemini streaming complete, parsing response...')
+          
+          if (!fullText) {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'No content generated. Please try again.' })))
+            controller.close()
+            return
+          }
+          
+          // Parse and validate JSON response
+          let parsedResponse: AnalysisResponse
+          try {
+            const jsonResponse = JSON.parse(fullText)
+            parsedResponse = analysisResponseSchema.parse(jsonResponse)
+          } catch (parseError) {
+            console.error('Failed to parse AI response as valid JSON:', parseError)
+            console.error('Raw response:', fullText.substring(0, 500))
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'AI returned invalid response format. Please try again.' })))
+            controller.close()
+            return
+          }
+          
+          // Validate output quality
+          if (parsedResponse.generatedDocument.length < 50) {
+            console.error('Generated document too short:', parsedResponse.generatedDocument.length, 'characters')
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'Generated content appears incomplete. Please try again.' })))
+            controller.close()
+            return
+          }
+          
+          console.log('Content generated successfully with score:', parsedResponse.matchAnalysis.score)
+          
+          // Send matchAnalysis first (immediate feedback)
+          controller.enqueue(encoder.encode(formatSSE('analysis', parsedResponse.matchAnalysis)))
+          
+          // Stream the document in chunks for progressive rendering
+          const docChunks = parsedResponse.generatedDocument.match(/.{1,100}/g) || []
+          for (const chunk of docChunks) {
+            controller.enqueue(encoder.encode(formatSSE('chunk', { text: chunk })))
+            // Small delay for visual streaming effect
+            await new Promise(resolve => setTimeout(resolve, 10))
+          }
+          
+          // Send completion event
+          controller.enqueue(encoder.encode(formatSSE('done', { 
+            coverLetter: parsedResponse.generatedDocument,
+            generatedDocument: parsedResponse.generatedDocument
+          })))
+          
+          controller.close()
+        } catch (error: unknown) {
+          console.error('Streaming error:', error)
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          
+          if (errorMessage.includes('API key')) {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'API configuration error. Please try again later.' })))
+          } else if (errorMessage.includes('quota') || errorMessage.includes('limit')) {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'Service temporarily unavailable. Please try again later.' })))
+          } else {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'An error occurred while generating content. Please try again.' })))
+          }
+          controller.close()
+        }
+      }
     })
     
-    console.log('Gemini API response received')
-    const rawText = response.text
-
-    if (!rawText) {
-      console.error('No content generated in response')
-      return NextResponse.json(
-        { error: 'No content generated. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    // Parse and validate JSON response
-    let parsedResponse: AnalysisResponse
-    try {
-      const jsonResponse = JSON.parse(rawText)
-      parsedResponse = analysisResponseSchema.parse(jsonResponse)
-    } catch (parseError) {
-      console.error('Failed to parse AI response as valid JSON:', parseError)
-      console.error('Raw response:', rawText.substring(0, 500))
-      return NextResponse.json(
-        { error: 'AI returned invalid response format. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    // Validate output quality
-    if (parsedResponse.generatedDocument.length < 50) {
-      console.error('Generated document too short:', parsedResponse.generatedDocument.length, 'characters')
-      return NextResponse.json(
-        { error: 'Generated content appears incomplete. Please try again.' },
-        { status: 500 }
-      )
-    }
-
-    console.log('Content generated successfully with score:', parsedResponse.matchAnalysis.score)
-    
-    // Return the full analysis response
-    return NextResponse.json({
-      matchAnalysis: parsedResponse.matchAnalysis,
-      generatedDocument: parsedResponse.generatedDocument,
-      // Keep backward compatibility
-      coverLetter: parsedResponse.generatedDocument,
+    // Return SSE stream response
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     })
 
   } catch (error: unknown) {

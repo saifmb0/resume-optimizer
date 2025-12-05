@@ -27,6 +27,8 @@ export default function Home() {
   const handleGenerate = async (data: FormData) => {
     setIsLoading(true)
     setFormData(data)
+    setCoverLetter('') // Reset for streaming
+    setMatchAnalysis(null)
 
     try {
       const response = await fetch('/api/generate-cover-letter', {
@@ -38,18 +40,69 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error('Failed to generate output:', response.statusText)
-        console.error('Status:', response.status)
-        console.error('Error details:', errorData)
-        alert(`Failed to generate output: ${errorData.error || response.statusText}`)
+        // Handle non-streaming error responses
+        const contentType = response.headers.get('content-type')
+        if (contentType?.includes('application/json')) {
+          const errorData = await response.json()
+          alert(`Failed to generate output: ${errorData.error || response.statusText}`)
+        } else {
+          alert(`Failed to generate output: ${response.statusText}`)
+        }
         return
       }
 
-      const result = await response.json()
-      setCoverLetter(result.coverLetter)
-      if (result.matchAnalysis) {
-        setMatchAnalysis(result.matchAnalysis)
+      // Handle SSE stream
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error('No response body')
+      }
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let documentText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Parse SSE events from buffer
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+        let eventType = ''
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7)
+          } else if (line.startsWith('data: ') && eventType) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              
+              switch (eventType) {
+                case 'analysis':
+                  // Immediately show the ATS analysis
+                  setMatchAnalysis(data)
+                  break
+                case 'chunk':
+                  // Progressively render document text
+                  documentText += data.text
+                  setCoverLetter(documentText)
+                  break
+                case 'done':
+                  // Final complete document
+                  setCoverLetter(data.coverLetter)
+                  break
+                case 'error':
+                  alert(data.error)
+                  return
+              }
+            } catch {
+              console.error('Failed to parse SSE data:', line)
+            }
+            eventType = ''
+          }
+        }
       }
     } catch (error) {
       console.error('Error:', error)
