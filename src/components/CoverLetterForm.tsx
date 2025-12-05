@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { DocumentTextIcon, BriefcaseIcon, UserIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { useState, useRef } from 'react'
+import { DocumentTextIcon, BriefcaseIcon, UserIcon, ExclamationTriangleIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline'
 import { inputSchema, containsMaliciousContent, detectPromptInjectionWithContext } from '@/utils/validation'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { z } from 'zod'
@@ -43,6 +43,8 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
   
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [isValidating, setIsValidating] = useState(false)
+  const [isParsing, setIsParsing] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const validateInput = (data: FormData): ValidationErrors => {
     const errors: ValidationErrors = {}
@@ -116,6 +118,55 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
     }
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      setErrors(prev => ({ ...prev, resume: 'Only PDF files are supported' }))
+      return
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, resume: 'File too large. Maximum size is 5MB.' }))
+      return
+    }
+
+    setIsParsing(true)
+    setErrors(prev => ({ ...prev, resume: undefined }))
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('/api/parse-resume', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to parse PDF')
+      }
+
+      const result = await response.json()
+      
+      // Auto-fill the resume textarea with extracted text
+      setFormData(prev => ({ ...prev, resume: result.text }))
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse PDF'
+      setErrors(prev => ({ ...prev, resume: errorMessage }))
+    } finally {
+      setIsParsing(false)
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
@@ -167,14 +218,49 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
 
           {/* Resume */}
           <div>
-            <label className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-200 mb-2">
-              <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
-              Your Resume/Background
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-200">
+                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                Your Resume/Background
+              </label>
+              
+              {/* PDF Upload Button */}
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="resume-upload"
+                  disabled={isParsing || isLoading}
+                />
+                <label
+                  htmlFor="resume-upload"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                    isParsing || isLoading
+                      ? 'bg-gray-200 text-gray-400 dark:bg-zinc-700 dark:text-zinc-500 cursor-not-allowed'
+                      : 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50'
+                  }`}
+                >
+                  {isParsing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                      Parsing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpTrayIcon className="w-3.5 h-3.5" />
+                      Upload PDF
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
             <textarea
               value={formData.resume}
               onChange={(e) => handleInputChange('resume', e.target.value)}
-              placeholder="Paste your resume content or LinkedIn profile summary..."
+              placeholder="Paste your resume content, upload a PDF, or enter your LinkedIn profile summary..."
               className={`w-full h-32 sm:h-40 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 text-sm sm:text-base ${
                 errors.resume 
                   ? 'border-red-300 dark:border-red-700' 
