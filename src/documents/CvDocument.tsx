@@ -1,11 +1,18 @@
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
 
-// Register fonts (using system fonts for now - can add custom fonts later)
+// Register Open Sans web font for cross-platform consistency
+// This ensures the PDF looks identical on Windows, Mac, and Linux
 Font.register({
-  family: 'Helvetica',
+  family: 'Open Sans',
   fonts: [
-    { src: 'Helvetica' },
-    { src: 'Helvetica-Bold', fontWeight: 'bold' },
+    { 
+      src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-regular.ttf',
+      fontWeight: 'normal'
+    },
+    { 
+      src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-700.ttf',
+      fontWeight: 'bold'
+    },
   ],
 })
 
@@ -13,7 +20,7 @@ Font.register({
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Open Sans',
     fontSize: 10,
     lineHeight: 1.4,
     color: '#000000',
