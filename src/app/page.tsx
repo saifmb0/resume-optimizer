@@ -24,12 +24,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isOptimizing, setIsOptimizing] = useState<boolean>(false)
   const [formData, setFormData] = useState<FormData | null>(null)
+  // Track incomplete generation for "Continue" feature
+  const [incompleteText, setIncompleteText] = useState<string | null>(null)
 
-  const handleGenerate = async (data: FormData) => {
+  const handleGenerate = async (data: FormData, continueFrom?: string) => {
     setIsLoading(true)
     setFormData(data)
-    setCoverLetter('') // Reset for streaming
-    setMatchAnalysis(null)
+    setIncompleteText(null)
+    
+    // If continuing, keep existing content; otherwise reset
+    if (!continueFrom) {
+      setCoverLetter('')
+      setMatchAnalysis(null)
+    }
 
     try {
       const response = await fetch('/api/generate-cover-letter', {
@@ -37,7 +44,11 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          // Pass partial text for continuation
+          continueFrom: continueFrom || undefined,
+        }),
       })
 
       if (!response.ok) {
@@ -52,22 +63,36 @@ export default function Home() {
         return
       }
 
-      // Handle SSE stream with robust parser (handles network fragmentation, multi-byte chars)
+      // Handle SSE stream with robust parser
       let errorOccurred = false
-      await parseSSEStream(response, {
+      const result = await parseSSEStream(response, {
         onAnalysis: (data) => setMatchAnalysis(data),
-        onChunk: (text) => setCoverLetter(text),
-        onDone: (coverLetter) => setCoverLetter(coverLetter),
+        onChunk: (text) => setCoverLetter(continueFrom ? continueFrom + text : text),
+        onDone: (letter) => setCoverLetter(continueFrom ? continueFrom + letter : letter),
         onError: (error) => {
           errorOccurred = true
           alert(error)
+        },
+        onIncomplete: (partialText) => {
+          // Stream ended without completion - offer continue option
+          setIncompleteText(partialText)
         }
       })
       
       if (errorOccurred) return
+      
+      // If stream didn't complete but we have partial text
+      if (!result.completed && result.partialText.length > 100) {
+        setIncompleteText(result.partialText)
+      }
     } catch (error) {
       console.error('Error:', error)
-      alert('Failed to generate output. Please try again.')
+      // If we have partial content, offer to continue
+      if (coverLetter.length > 100) {
+        setIncompleteText(coverLetter)
+      } else {
+        alert('Failed to generate output. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -76,6 +101,12 @@ export default function Home() {
   const handleRegenerate = () => {
     if (formData) {
       handleGenerate(formData)
+    }
+  }
+
+  const handleContinueGeneration = () => {
+    if (formData && incompleteText) {
+      handleGenerate(formData, incompleteText)
     }
   }
 
@@ -211,8 +242,10 @@ export default function Home() {
               matchAnalysis={matchAnalysis ?? undefined}
               onRegenerate={handleRegenerate}
               onOptimize={handleOptimize}
+              onContinue={incompleteText ? handleContinueGeneration : undefined}
               isLoading={isLoading}
               isOptimizing={isOptimizing}
+              isIncomplete={!!incompleteText}
               formData={formData ?? undefined}
             />
 
