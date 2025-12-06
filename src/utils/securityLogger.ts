@@ -28,11 +28,25 @@ export class SecurityLogger {
       console.warn('🚨 SECURITY_EVENT:', logData)
     }
     
-    // In production, you would send this to your monitoring service
-    // Examples: Sentry, DataDog, CloudWatch, etc.
+    // In production, log as structured JSON for Vercel log aggregation
+    // Vercel automatically captures console output and makes it queryable
+    // Use console.warn for visibility in log dashboard
     if (process.env.NODE_ENV === 'production') {
-      // Example: Send to external monitoring service
-      // await fetch('/api/security-log', { method: 'POST', body: JSON.stringify(logData) })
+      // Structured logging for Vercel's log drain / log explorer
+      // Format: JSON for easy parsing and filtering in Vercel dashboard
+      console.warn(JSON.stringify({
+        type: 'SECURITY_EVENT',
+        ...logData
+      }))
+      
+      // Optional: Send to external monitoring if configured
+      // Sentry integration example (uncomment if @sentry/nextjs is installed):
+      // if (severity === 'HIGH' || severity === 'CRITICAL') {
+      //   Sentry.captureMessage(event, { 
+      //     level: severity === 'CRITICAL' ? 'fatal' : 'error',
+      //     extra: details 
+      //   })
+      // }
     }
   }
 
