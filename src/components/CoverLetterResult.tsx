@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
@@ -84,17 +84,34 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(coverLetter)
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>('modern')
+  // Debounced content for PDF generation - prevents re-renders while typing
+  const [debouncedContent, setDebouncedContent] = useState(coverLetter)
 
   // Sync editedContent when coverLetter prop changes (e.g., regeneration)
   useEffect(() => {
     setEditedContent(coverLetter)
+    setDebouncedContent(coverLetter)
     setIsEditing(false)
   }, [coverLetter])
 
-  // Use edited content for copy and PDF export
+  // Debounce content changes for PDF generation (500ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedContent(editedContent)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [editedContent])
+
+  // Memoize PDF document to prevent re-renders while typing
+  // Only regenerates when debounced content or theme changes
+  const memoizedPdfDocument = useMemo(() => {
+    return <CvDocument content={debouncedContent} theme={selectedTheme} />
+  }, [debouncedContent, selectedTheme])
+
+  // Use edited content for copy (immediate), debounced for PDF
   const currentContent = editedContent
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(currentContent)
       setCopied(true)
@@ -102,12 +119,12 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
     } catch (err) {
       console.error('Failed to copy text: ', err)
     }
-  }
+  }, [currentContent])
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = useCallback(async () => {
     try {
-      // Generate PDF using declarative React-PDF renderer with selected theme
-      const blob = await pdf(<CvDocument content={currentContent} theme={selectedTheme} />).toBlob()
+      // Generate PDF using memoized document (uses debounced content)
+      const blob = await pdf(memoizedPdfDocument).toBlob()
       
       // Create download link
       const url = URL.createObjectURL(blob)
@@ -122,7 +139,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
       console.error('Failed to generate PDF:', error)
       alert('Failed to generate PDF. Please try again.')
     }
-  }
+  }, [memoizedPdfDocument])
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6">
