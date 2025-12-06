@@ -331,12 +331,6 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
             })}
           </div>
         </div>
-
-        {/* AdSense Placeholder */}
-        <div className="mt-6 sm:mt-8 p-4 bg-gray-100 dark:bg-zinc-800 border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-lg text-center">
-          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Google AdSense Ad Placement</p>
-          <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500">728x90 or 300x250 responsive ad unit</p>
-        </div>
       </div>
     </div>
   )
