@@ -1,5 +1,5 @@
 import { Document, Page, Text, View } from '@react-pdf/renderer'
-import { getThemeStyles, type ThemeId } from './themes'
+import { getThemeStyles, type ThemeId, type ThemeStyles } from './themes'
 
 interface CvDocumentProps {
   content: string
@@ -95,8 +95,7 @@ function parseMixedBold(text: string): Array<{ text: string; bold: boolean }> {
 // Render mixed bold/normal text - accepts styles as prop
 interface MixedTextProps {
   parts: Array<{ text: string; bold: boolean }>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  styles: any
+  styles: ThemeStyles
 }
 
 function MixedText({ parts, styles }: MixedTextProps) {

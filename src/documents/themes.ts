@@ -279,6 +279,9 @@ export const themeStyles: Record<ThemeId, ReturnType<typeof StyleSheet.create>> 
   minimal: minimalStyles,
 }
 
-export function getThemeStyles(themeId: ThemeId) {
+// Export type for use in components
+export type ThemeStyles = ReturnType<typeof StyleSheet.create>
+
+export function getThemeStyles(themeId: ThemeId): ThemeStyles {
   return themeStyles[themeId] || modernStyles
 }
