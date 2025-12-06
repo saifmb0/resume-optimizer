@@ -96,3 +96,11 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Handle accidental GET requests gracefully
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Please use POST with a PDF file.' },
+    { status: 405 }
+  )
+}
