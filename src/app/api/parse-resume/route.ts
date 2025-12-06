@@ -62,9 +62,18 @@ export async function POST(request: NextRequest) {
       .replace(/\n{3,}/g, '\n\n') // Remove excessive blank lines
       .trim()
 
+    // Check for scanned/image-based PDFs
+    // If we have pages but very little text, it's likely a scanned document
+    if (data.numpages > 0 && extractedText.length < 200) {
+      return NextResponse.json(
+        { error: 'This PDF appears to be scanned or image-based. Please upload a text-based PDF, or copy/paste your resume content directly.' },
+        { status: 400 }
+      )
+    }
+
     if (!extractedText || extractedText.length < 50) {
       return NextResponse.json(
-        { error: 'Could not extract text from PDF. The file may be scanned/image-based or protected.' },
+        { error: 'Could not extract text from PDF. The file may be empty or corrupted.' },
         { status: 400 }
       )
     }
