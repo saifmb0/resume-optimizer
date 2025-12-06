@@ -15,6 +15,7 @@
     "@react-pdf/renderer": "^4.3.1",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.35.0",
+    "eventsource-parser": "^3.0.6",
     "html2canvas": "^1.4.1",
     "isomorphic-dompurify": "^2.33.0",
     "lucide-react": "^0.555.0",

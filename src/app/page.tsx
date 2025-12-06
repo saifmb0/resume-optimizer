@@ -4,6 +4,7 @@ import { useState } from 'react'
 import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
+import { parseSSEStream } from '@/hooks/useSSEStream'
 //import AdSense from '@/components/AdSense'
 
 interface FormData {
@@ -51,59 +52,19 @@ export default function Home() {
         return
       }
 
-      // Handle SSE stream
-      const reader = response.body?.getReader()
-      if (!reader) {
-        throw new Error('No response body')
-      }
-
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let documentText = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        
-        // Parse SSE events from buffer
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // Keep incomplete line in buffer
-
-        let eventType = ''
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            eventType = line.slice(7)
-          } else if (line.startsWith('data: ') && eventType) {
-            try {
-              const data = JSON.parse(line.slice(6))
-              
-              switch (eventType) {
-                case 'analysis':
-                  // Immediately show the ATS analysis
-                  setMatchAnalysis(data)
-                  break
-                case 'chunk':
-                  // Progressively render document text
-                  documentText += data.text
-                  setCoverLetter(documentText)
-                  break
-                case 'done':
-                  // Final complete document
-                  setCoverLetter(data.coverLetter)
-                  break
-                case 'error':
-                  alert(data.error)
-                  return
-              }
-            } catch {
-              console.error('Failed to parse SSE data:', line)
-            }
-            eventType = ''
-          }
+      // Handle SSE stream with robust parser (handles network fragmentation, multi-byte chars)
+      let errorOccurred = false
+      await parseSSEStream(response, {
+        onAnalysis: (data) => setMatchAnalysis(data),
+        onChunk: (text) => setCoverLetter(text),
+        onDone: (coverLetter) => setCoverLetter(coverLetter),
+        onError: (error) => {
+          errorOccurred = true
+          alert(error)
         }
-      }
+      })
+      
+      if (errorOccurred) return
     } catch (error) {
       console.error('Error:', error)
       alert('Failed to generate output. Please try again.')
