@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://cdn.jsdelivr.net https://vercel.live https://vercel.com",
+              "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://cdn.jsdelivr.net https://vercel.live https://vercel.com",
               "object-src 'none'",
               "base-uri 'self'",
               "frame-ancestors 'self' http://localhost:3000 https://seifeldin-mahmoud.vercel.app https://*.saifmb.com https://saifmb.com",
