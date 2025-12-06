@@ -4,10 +4,13 @@ import { inputSchema, sanitizeInput, detectPromptInjectionWithContext, containsM
 import { checkRateLimit, getClientIP } from '@/utils/rateLimit'
 import { SecurityLogger } from '@/utils/securityLogger'
 import { 
-  CAREER_STRATEGIST_SYSTEM_PROMPT, 
+  ANALYSIS_SYSTEM_PROMPT,
+  GENERATION_SYSTEM_PROMPT,
   TONE_DESCRIPTIONS, 
-  ANALYSIS_RESPONSE_SCHEMA, 
-  constructUserPrompt,
+  ANALYSIS_ONLY_SCHEMA,
+  GENERATION_ONLY_SCHEMA,
+  constructAnalysisPrompt,
+  constructGenerationPrompt,
   type ToneType 
 } from '@/lib/prompts'
 import { z } from 'zod'
@@ -18,17 +21,20 @@ interface GenerateRequest {
   tone: ToneType
 }
 
-// Response schema for Zod validation of AI output
-const analysisResponseSchema = z.object({
-  matchAnalysis: z.object({
-    score: z.number().min(0).max(100),
-    reasoning: z.string(),
-    missingKeywords: z.array(z.string()),
-  }),
+// Phase 1: Analysis response schema
+const analysisSchema = z.object({
+  score: z.number().min(0).max(100),
+  reasoning: z.string(),
+  missingKeywords: z.array(z.string()),
+  strengths: z.array(z.string()),
+})
+
+// Phase 2: Generation response schema
+const generationSchema = z.object({
   generatedDocument: z.string(),
 })
 
-type AnalysisResponse = z.infer<typeof analysisResponseSchema>
+type AnalysisResult = z.infer<typeof analysisSchema>
 
 // Helper to create SSE-formatted data
 function formatSSE(event: string, data: unknown): string {
@@ -147,16 +153,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Build the user prompt with imported helpers
-    const userPrompt = constructUserPrompt(jobDescription, resume, tone)
+    // Get document type description
+    const documentType = TONE_DESCRIPTIONS[tone]
 
     // Initialize Gemini API client
     const ai = new GoogleGenAI({
       apiKey
     })
 
-    // Use streaming for faster time-to-first-byte
-    console.log('Attempting to generate content with Gemini (streaming JSON mode)...')
+    // Two-Phase Prompt Chaining for improved quality
+    console.log('Starting two-phase prompt chain...')
     
     // Create a readable stream for SSE response
     const encoder = new TextEncoder()
@@ -164,63 +170,115 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Call Gemini API with streaming
-          const streamResponse = await ai.models.generateContentStream({
+          // ============================================
+          // PHASE 1: Analysis (Let the model "think")
+          // ============================================
+          console.log('Phase 1: Running ATS analysis...')
+          
+          const analysisPrompt = constructAnalysisPrompt(jobDescription, resume)
+          
+          const analysisResponse = await ai.models.generateContent({
             model: "gemini-2.5-pro",
             config: {
-              systemInstruction: CAREER_STRATEGIST_SYSTEM_PROMPT,
+              systemInstruction: ANALYSIS_SYSTEM_PROMPT,
               responseMimeType: "application/json",
-              responseSchema: ANALYSIS_RESPONSE_SCHEMA,
+              responseSchema: ANALYSIS_ONLY_SCHEMA,
             },
-            contents: userPrompt,
+            contents: analysisPrompt,
           })
           
-          // Accumulate the full JSON response
-          let fullText = ''
-          
-          for await (const chunk of streamResponse) {
-            const chunkText = chunk.text
-            if (chunkText) {
-              fullText += chunkText
-            }
-          }
-          
-          console.log('Gemini streaming complete, parsing response...')
-          
-          if (!fullText) {
-            controller.enqueue(encoder.encode(formatSSE('error', { error: 'No content generated. Please try again.' })))
+          const analysisText = analysisResponse.text
+          if (!analysisText) {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'Analysis phase failed. Please try again.' })))
             controller.close()
             return
           }
           
-          // Parse and validate JSON response
-          let parsedResponse: AnalysisResponse
+          // Parse and validate analysis
+          let analysis: AnalysisResult
           try {
-            const jsonResponse = JSON.parse(fullText)
-            parsedResponse = analysisResponseSchema.parse(jsonResponse)
+            const jsonAnalysis = JSON.parse(analysisText)
+            analysis = analysisSchema.parse(jsonAnalysis)
           } catch (parseError) {
-            console.error('Failed to parse AI response as valid JSON:', parseError)
-            console.error('Raw response:', fullText.substring(0, 500))
-            controller.enqueue(encoder.encode(formatSSE('error', { error: 'AI returned invalid response format. Please try again.' })))
+            console.error('Failed to parse analysis response:', parseError)
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'AI analysis returned invalid format. Please try again.' })))
+            controller.close()
+            return
+          }
+          
+          console.log('Phase 1 complete. Score:', analysis.score)
+          
+          // Send analysis immediately (fast feedback)
+          controller.enqueue(encoder.encode(formatSSE('analysis', {
+            score: analysis.score,
+            reasoning: analysis.reasoning,
+            missingKeywords: analysis.missingKeywords,
+          })))
+          
+          // ============================================
+          // PHASE 2: Generation (Use analysis context)
+          // ============================================
+          console.log('Phase 2: Generating document with analysis context...')
+          
+          const generationPrompt = constructGenerationPrompt(
+            jobDescription,
+            resume,
+            documentType,
+            analysis
+          )
+          
+          // Stream the generation for progressive rendering
+          const generationStream = await ai.models.generateContentStream({
+            model: "gemini-2.5-pro",
+            config: {
+              systemInstruction: GENERATION_SYSTEM_PROMPT,
+              responseMimeType: "application/json",
+              responseSchema: GENERATION_ONLY_SCHEMA,
+            },
+            contents: generationPrompt,
+          })
+          
+          // Accumulate the generation response
+          let generationText = ''
+          
+          for await (const chunk of generationStream) {
+            const chunkText = chunk.text
+            if (chunkText) {
+              generationText += chunkText
+            }
+          }
+          
+          if (!generationText) {
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'Document generation failed. Please try again.' })))
+            controller.close()
+            return
+          }
+          
+          // Parse generation response
+          let generatedDocument: string
+          try {
+            const jsonGeneration = JSON.parse(generationText)
+            const parsed = generationSchema.parse(jsonGeneration)
+            generatedDocument = parsed.generatedDocument
+          } catch (parseError) {
+            console.error('Failed to parse generation response:', parseError)
+            controller.enqueue(encoder.encode(formatSSE('error', { error: 'AI generation returned invalid format. Please try again.' })))
             controller.close()
             return
           }
           
           // Validate output quality
-          if (parsedResponse.generatedDocument.length < 50) {
-            console.error('Generated document too short:', parsedResponse.generatedDocument.length, 'characters')
+          if (generatedDocument.length < 50) {
+            console.error('Generated document too short:', generatedDocument.length, 'characters')
             controller.enqueue(encoder.encode(formatSSE('error', { error: 'Generated content appears incomplete. Please try again.' })))
             controller.close()
             return
           }
           
-          console.log('Content generated successfully with score:', parsedResponse.matchAnalysis.score)
-          
-          // Send matchAnalysis first (immediate feedback)
-          controller.enqueue(encoder.encode(formatSSE('analysis', parsedResponse.matchAnalysis)))
+          console.log('Phase 2 complete. Document length:', generatedDocument.length)
           
           // Stream the document in chunks for progressive rendering
-          const docChunks = parsedResponse.generatedDocument.match(/.{1,100}/g) || []
+          const docChunks = generatedDocument.match(/.{1,100}/g) || []
           for (const chunk of docChunks) {
             controller.enqueue(encoder.encode(formatSSE('chunk', { text: chunk })))
             // Small delay for visual streaming effect
@@ -229,13 +287,13 @@ export async function POST(request: NextRequest) {
           
           // Send completion event
           controller.enqueue(encoder.encode(formatSSE('done', { 
-            coverLetter: parsedResponse.generatedDocument,
-            generatedDocument: parsedResponse.generatedDocument
+            coverLetter: generatedDocument,
+            generatedDocument: generatedDocument
           })))
           
           controller.close()
         } catch (error: unknown) {
-          console.error('Streaming error:', error)
+          console.error('Prompt chain error:', error)
           const errorMessage = error instanceof Error ? error.message : String(error)
           
           if (errorMessage.includes('API key')) {
