@@ -31,9 +31,6 @@ export const metadata: Metadata = {
     description: "Generate professional cover letters instantly with AI",
   },
   robots: "index, follow",
-  other: {
-    "google-adsense-account": "ca-pub-3220721765446303",
-  },
 };
 
 export const viewport = {
@@ -53,13 +50,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Google AdSense - This will automatically be moved to head by Next.js */}
-        <Script
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3220721765446303"
-          crossOrigin="anonymous"
-          strategy="beforeInteractive"
-        />
-        
         {/* Google Analytics */}
         {gaId && (
           <>
