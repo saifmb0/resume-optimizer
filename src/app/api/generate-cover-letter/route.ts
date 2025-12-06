@@ -19,6 +19,7 @@ interface GenerateRequest {
   jobDescription: string
   resume: string
   tone: ToneType
+  continueFrom?: string
 }
 
 // Phase 1: Analysis response schema
@@ -103,7 +104,9 @@ export async function POST(request: NextRequest) {
     // Sanitize inputs
     const jobDescription = sanitizeInput(validatedInput.jobDescription)
     const resume = sanitizeInput(validatedInput.resume)
-    const { tone } = validatedInput
+    const { tone, continueFrom } = validatedInput
+    // Sanitize continuation text if provided
+    const sanitizedContinueFrom = continueFrom ? sanitizeInput(continueFrom) : undefined
 
     // Check for malicious content first
     const maliciousContentCheck = containsMaliciousContent(jobDescription)
@@ -218,13 +221,15 @@ export async function POST(request: NextRequest) {
           // ============================================
           // PHASE 2: Generation (Use analysis context)
           // ============================================
-          console.log('Phase 2: Generating document with analysis context...')
+          console.log('Phase 2: Generating document with analysis context...', 
+            sanitizedContinueFrom ? '(continuation mode)' : '(fresh generation)')
           
           const generationPrompt = constructGenerationPrompt(
             jobDescription,
             resume,
             documentType,
-            analysis
+            analysis,
+            sanitizedContinueFrom // Pass continuation text if present
           )
           
           // Stream the generation for progressive rendering

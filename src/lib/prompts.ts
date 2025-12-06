@@ -100,13 +100,26 @@ Provide your structured analysis with score, reasoning, and missing keywords.`
 
 /**
  * Constructs Phase 2 prompt: Generation with analysis context
+ * @param continueFrom - Optional partial text to continue from (for incomplete generations)
  */
 export function constructGenerationPrompt(
   jobDescription: string,
   resume: string,
   documentType: string,
-  analysis: { score: number; reasoning: string; missingKeywords: string[] }
+  analysis: { score: number; reasoning: string; missingKeywords: string[] },
+  continueFrom?: string
 ): string {
+  const continuationContext = continueFrom 
+    ? `\n\n=== CONTINUATION CONTEXT ===
+The previous generation was incomplete. Continue from where it left off.
+Do NOT repeat what has already been written. Pick up seamlessly.
+
+ALREADY GENERATED TEXT:
+${continueFrom}
+
+CONTINUE from the exact point where this text ends. Do not restart the document.`
+    : ''
+
   return `Generate ${documentType} using the following context.
 
 === ANALYSIS CONTEXT ===
@@ -118,9 +131,9 @@ Keywords to incorporate (where truthful): ${analysis.missingKeywords.join(', ')}
 ${jobDescription}
 
 === APPLICANT RESUME/BACKGROUND ===
-${resume}
+${resume}${continuationContext}
 
-Generate an optimized ${documentType} that addresses the analysis findings.`
+${continueFrom ? 'Continue the document from where it left off.' : `Generate an optimized ${documentType} that addresses the analysis findings.`}`
 }
 
 /**

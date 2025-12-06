@@ -16,7 +16,9 @@ export const inputSchema = z.object({
     .min(10, 'Resume must be at least 10 characters') 
     .max(10000, 'Resume cannot exceed 10000 characters')
     .refine(val => !containsMaliciousContent(val).isDetected, 'Invalid content detected'),
-  tone: z.enum(['CV', 'CoverLetter', 'Wdywtwh'])
+  tone: z.enum(['CV', 'CoverLetter', 'Wdywtwh']),
+  // Optional: partial text for continuation when previous generation was incomplete
+  continueFrom: z.string().max(10000, 'Continuation text too long').optional()
 })
 
 export function containsMaliciousContent(text: string): SecurityDetection {
