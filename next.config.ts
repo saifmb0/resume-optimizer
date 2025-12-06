@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+// Only include localhost in CSP during development
+const isDev = process.env.NODE_ENV !== 'production';
+const devFrameAncestors = isDev ? 'http://localhost:3000' : '';
+
 const nextConfig: NextConfig = {
   // Security headers
   async headers() {
@@ -36,7 +40,7 @@ const nextConfig: NextConfig = {
               "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://cdn.jsdelivr.net https://vercel.live https://vercel.com",
               "object-src 'none'",
               "base-uri 'self'",
-              "frame-ancestors 'self' http://localhost:3000 https://seifeldin-mahmoud.vercel.app https://*.saifmb.com https://saifmb.com",
+              `frame-ancestors 'self' ${devFrameAncestors} https://seifeldin-mahmoud.vercel.app https://*.saifmb.com https://saifmb.com`.trim().replace(/\s+/g, ' '),
               "form-action 'self'"
             ].join('; ')
           }
