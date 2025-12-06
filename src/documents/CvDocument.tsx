@@ -1,89 +1,9 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
-
-// Register Open Sans web font for cross-platform consistency
-// This ensures the PDF looks identical on Windows, Mac, and Linux
-Font.register({
-  family: 'Open Sans',
-  fonts: [
-    { 
-      src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-regular.ttf',
-      fontWeight: 'normal'
-    },
-    { 
-      src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-700.ttf',
-      fontWeight: 'bold'
-    },
-  ],
-})
-
-// Define styles using Flexbox - no manual coordinate math needed
-const styles = StyleSheet.create({
-  page: {
-    padding: 40,
-    fontFamily: 'Open Sans',
-    fontSize: 10,
-    lineHeight: 1.4,
-    color: '#000000',
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  contactInfo: {
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 12,
-    color: '#333333',
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 16,
-    marginBottom: 6,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#000000',
-    paddingBottom: 3,
-  },
-  paragraph: {
-    fontSize: 10,
-    marginBottom: 6,
-    textAlign: 'justify',
-  },
-  bulletPoint: {
-    flexDirection: 'row',
-    marginBottom: 4,
-    marginLeft: 12,
-  },
-  bullet: {
-    width: 10,
-    fontSize: 10,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 10,
-  },
-  jobTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 2,
-  },
-  inlineText: {
-    fontSize: 10,
-  },
-  boldText: {
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-})
+import { Document, Page, Text, View } from '@react-pdf/renderer'
+import { getThemeStyles, type ThemeId } from './themes'
 
 interface CvDocumentProps {
   content: string
+  theme?: ThemeId
 }
 
 // Parse markdown-like content into structured elements
@@ -172,8 +92,14 @@ function parseMixedBold(text: string): Array<{ text: string; bold: boolean }> {
   return parts
 }
 
-// Render mixed bold/normal text
-function MixedText({ parts }: { parts: Array<{ text: string; bold: boolean }> }) {
+// Render mixed bold/normal text - accepts styles as prop
+interface MixedTextProps {
+  parts: Array<{ text: string; bold: boolean }>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  styles: any
+}
+
+function MixedText({ parts, styles }: MixedTextProps) {
   return (
     <Text style={styles.inlineText}>
       {parts.map((part, idx) => (
@@ -185,7 +111,8 @@ function MixedText({ parts }: { parts: Array<{ text: string; bold: boolean }> })
   )
 }
 
-export function CvDocument({ content }: CvDocumentProps) {
+export function CvDocument({ content, theme = 'modern' }: CvDocumentProps) {
+  const styles = getThemeStyles(theme)
   const elements = parseContent(content)
 
   return (
@@ -208,7 +135,7 @@ export function CvDocument({ content }: CvDocumentProps) {
                   <Text style={styles.bullet}>•</Text>
                   <View style={styles.bulletText}>
                     {element.parts ? (
-                      <MixedText parts={element.parts} />
+                      <MixedText parts={element.parts} styles={styles} />
                     ) : (
                       <Text>{element.text}</Text>
                     )}
@@ -222,7 +149,7 @@ export function CvDocument({ content }: CvDocumentProps) {
             case 'mixed':
               return (
                 <View key={index} style={styles.paragraph}>
-                  {element.parts && <MixedText parts={element.parts} />}
+                  {element.parts && <MixedText parts={element.parts} styles={styles} />}
                 </View>
               )
             

@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
+import { type ThemeId } from '@/documents/themes'
 import InterviewQuestions from './InterviewQuestions'
+import ThemeSelector from './ThemeSelector'
 
 interface MatchAnalysis {
   score: number
@@ -81,6 +83,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(coverLetter)
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>('modern')
 
   // Sync editedContent when coverLetter prop changes (e.g., regeneration)
   useEffect(() => {
@@ -103,8 +106,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
   const handleDownloadPDF = async () => {
     try {
-      // Generate PDF using declarative React-PDF renderer with edited content
-      const blob = await pdf(<CvDocument content={currentContent} />).toBlob()
+      // Generate PDF using declarative React-PDF renderer with selected theme
+      const blob = await pdf(<CvDocument content={currentContent} theme={selectedTheme} />).toBlob()
       
       // Create download link
       const url = URL.createObjectURL(blob)
@@ -171,6 +174,12 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
             </button>
           </div>
         </div>
+
+        {/* PDF Theme Selector */}
+        <ThemeSelector
+          selectedTheme={selectedTheme}
+          onThemeChange={setSelectedTheme}
+        />
 
         {/* ATS Match Analysis Section */}
         {matchAnalysis && (
