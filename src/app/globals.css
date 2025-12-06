@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind v4 Theme Configuration */
+@theme {
+  --color-background: #f9fafb;
+  --color-foreground: #111827;
+}
+
 /* Mobile-first responsive improvements */
 * {
   -webkit-font-smoothing: antialiased;
