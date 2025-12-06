@@ -213,6 +213,7 @@ export default function Home() {
               onOptimize={handleOptimize}
               isLoading={isLoading}
               isOptimizing={isOptimizing}
+              formData={formData ?? undefined}
             />
 
             <div className="text-center mt-6 sm:mt-8">

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
+import InterviewQuestions from './InterviewQuestions'
 
 interface MatchAnalysis {
   score: number
@@ -18,6 +19,11 @@ interface CoverLetterResultProps {
   onOptimize?: (missingKeywords: string[]) => void
   isLoading: boolean
   isOptimizing?: boolean
+  formData?: {
+    jobDescription: string
+    resume: string
+    tone: string
+  }
 }
 
 // ATS Score Gauge Component
@@ -71,7 +77,7 @@ function ATSScoreGauge({ score }: { score: number }) {
   )
 }
 
-export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, isLoading, isOptimizing }: CoverLetterResultProps) {
+export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, isLoading, isOptimizing, formData }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState(coverLetter)
@@ -378,6 +384,14 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           </div>
           )}
         </div>
+
+        {/* Interview Prep Section */}
+        {formData && (
+          <InterviewQuestions 
+            resume={formData.resume} 
+            jobDescription={formData.jobDescription} 
+          />
+        )}
       </div>
     </div>
   )
