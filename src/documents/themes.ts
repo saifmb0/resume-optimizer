@@ -1,27 +1,28 @@
 import { StyleSheet, Font } from '@react-pdf/renderer'
 
-// Register fonts for all themes
+// Register fonts locally for privacy and performance
+// Fonts are served from /public/fonts to avoid CDN latency and IP leakage
 Font.register({
   family: 'Open Sans',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-regular.ttf', fontWeight: 'normal' },
-    { src: 'https://cdn.jsdelivr.net/npm/open-sans-all@0.1.3/fonts/open-sans-700.ttf', fontWeight: 'bold' },
+    { src: '/fonts/OpenSans-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/OpenSans-Bold.ttf', fontWeight: 'bold' },
   ],
 })
 
 Font.register({
   family: 'Roboto',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-400-normal.ttf', fontWeight: 'normal' },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-700-normal.ttf', fontWeight: 'bold' },
+    { src: '/fonts/Roboto-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/Roboto-Bold.ttf', fontWeight: 'bold' },
   ],
 })
 
 Font.register({
   family: 'Lora',
   fonts: [
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/lora@latest/latin-400-normal.ttf', fontWeight: 'normal' },
-    { src: 'https://cdn.jsdelivr.net/fontsource/fonts/lora@latest/latin-700-normal.ttf', fontWeight: 'bold' },
+    { src: '/fonts/Lora-Regular.ttf', fontWeight: 'normal' },
+    { src: '/fonts/Lora-Bold.ttf', fontWeight: 'bold' },
   ],
 })
 
