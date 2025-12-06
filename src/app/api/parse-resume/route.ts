@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PDFParse } from 'pdf-parse'
 import { checkRateLimit, getClientIP } from '@/utils/rateLimit'
 import { SecurityLogger } from '@/utils/securityLogger'
 
@@ -47,23 +46,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert file to buffer
-    const bytes = await file.arrayBuffer()
-    const uint8Array = new Uint8Array(bytes)
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
-    // Parse PDF and extract text using PDFParse
-    const parser = new PDFParse({ data: uint8Array })
-    const textResult = await parser.getText()
+    // Dynamic import to avoid pdf-parse test file issue during build
+    // pdf-parse v1.1.1 tries to load a test PDF at import time
+    const pdf = (await import('pdf-parse')).default
     
-    // Concatenate text from all pages
-    const extractedText = textResult.pages
-      .map((page: { text: string }) => page.text)
-      .join('\n\n')
+    // Parse PDF using pdf-parse v1.1.1 functional API
+    const data = await pdf(buffer)
+    
+    // Normalize text
+    const extractedText = data.text
       .replace(/\r\n/g, '\n') // Normalize line endings
       .replace(/\n{3,}/g, '\n\n') // Remove excessive blank lines
       .trim()
-    
-    // Cleanup parser resources
-    await parser.destroy()
 
     if (!extractedText || extractedText.length < 50) {
       return NextResponse.json(
@@ -74,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       text: extractedText,
-      pageCount: textResult.total,
+      pageCount: data.numpages,
       characterCount: extractedText.length,
     })
 
