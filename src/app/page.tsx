@@ -23,6 +23,7 @@ export default function Home() {
   const [coverLetter, setCoverLetter] = useState<string>('')
   const [matchAnalysis, setMatchAnalysis] = useState<MatchAnalysis | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isOptimizing, setIsOptimizing] = useState<boolean>(false)
   const [formData, setFormData] = useState<FormData | null>(null)
 
   const handleGenerate = async (data: FormData) => {
@@ -76,6 +77,43 @@ export default function Home() {
   const handleRegenerate = () => {
     if (formData) {
       handleGenerate(formData)
+    }
+  }
+
+  const handleOptimize = async (missingKeywords: string[]) => {
+    if (!formData) return
+    
+    setIsOptimizing(true)
+    try {
+      const response = await fetch('/api/optimize-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: formData.resume,
+          missingKeywords,
+          jobDescription: formData.jobDescription,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        alert(`Failed to optimize: ${errorData.error || response.statusText}`)
+        return
+      }
+
+      const { optimizedResume } = await response.json()
+      
+      // Update the form data with optimized resume and regenerate
+      const newFormData = { ...formData, resume: optimizedResume }
+      setFormData(newFormData)
+      
+      // Regenerate with the optimized resume
+      handleGenerate(newFormData)
+    } catch (error) {
+      console.error('Optimization error:', error)
+      alert('Failed to optimize resume. Please try again.')
+    } finally {
+      setIsOptimizing(false)
     }
   }
 
@@ -177,7 +215,9 @@ export default function Home() {
               coverLetter={coverLetter}
               matchAnalysis={matchAnalysis ?? undefined}
               onRegenerate={handleRegenerate}
+              onOptimize={handleOptimize}
               isLoading={isLoading}
+              isOptimizing={isOptimizing}
             />
 
             <div className="text-center mt-6 sm:mt-8">

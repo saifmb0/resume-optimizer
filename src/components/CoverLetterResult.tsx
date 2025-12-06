@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
 
@@ -15,7 +15,9 @@ interface CoverLetterResultProps {
   coverLetter: string
   matchAnalysis?: MatchAnalysis
   onRegenerate: () => void
+  onOptimize?: (missingKeywords: string[]) => void
   isLoading: boolean
+  isOptimizing?: boolean
 }
 
 // ATS Score Gauge Component
@@ -69,7 +71,7 @@ function ATSScoreGauge({ score }: { score: number }) {
   )
 }
 
-export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, isLoading }: CoverLetterResultProps) {
+export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, isLoading, isOptimizing }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
@@ -162,9 +164,21 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                 {/* Missing Keywords */}
                 {matchAnalysis.missingKeywords && matchAnalysis.missingKeywords.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Keywords to Consider Adding
-                    </h4>
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Keywords to Consider Adding
+                      </h4>
+                      {onOptimize && (
+                        <button
+                          onClick={() => onOptimize(matchAnalysis.missingKeywords)}
+                          disabled={isOptimizing || isLoading}
+                          className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white text-xs font-medium rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
+                          <SparklesIcon className="w-3.5 h-3.5 mr-1.5" />
+                          {isOptimizing ? 'Optimizing...' : 'Optimize Resume'}
+                        </button>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {matchAnalysis.missingKeywords.map((keyword, idx) => (
                         <span
