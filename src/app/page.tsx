@@ -5,7 +5,6 @@ import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
 import { parseSSEStream } from '@/hooks/useSSEStream'
-//import AdSense from '@/components/AdSense'
 
 interface FormData {
   jobDescription: string
@@ -144,10 +143,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* AdSense - Top */}
-      {
-      //<AdSense slot="top-banner" />
-      }
       <main className="py-6 sm:py-8">
         {!coverLetter ? (
           <>
@@ -232,9 +227,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* AdSense - Bottom 
-      <AdSense slot="bottom-banner" />
-      */}
       {/* Footer */}
       <footer className="bg-gray-900 dark:bg-zinc-950 text-white py-8 sm:py-12 mt-12 sm:mt-5">
 
