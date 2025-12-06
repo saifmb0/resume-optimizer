@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect } from 'react'
+import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
 
@@ -73,10 +73,21 @@ function ATSScoreGauge({ score }: { score: number }) {
 
 export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, isLoading, isOptimizing }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedContent, setEditedContent] = useState(coverLetter)
+
+  // Sync editedContent when coverLetter prop changes (e.g., regeneration)
+  useEffect(() => {
+    setEditedContent(coverLetter)
+    setIsEditing(false)
+  }, [coverLetter])
+
+  // Use edited content for copy and PDF export
+  const currentContent = editedContent
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(coverLetter)
+      await navigator.clipboard.writeText(currentContent)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -86,8 +97,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
   const handleDownloadPDF = async () => {
     try {
-      // Generate PDF using declarative React-PDF renderer
-      const blob = await pdf(<CvDocument content={coverLetter} />).toBlob()
+      // Generate PDF using declarative React-PDF renderer with edited content
+      const blob = await pdf(<CvDocument content={currentContent} />).toBlob()
       
       // Create download link
       const url = URL.createObjectURL(blob)
@@ -110,6 +121,26 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Results</h2>
           <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`flex items-center px-3 sm:px-4 py-2 ${
+                isEditing 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600' 
+                  : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600'
+              } text-white rounded-md transition-colors duration-200 text-sm sm:text-base`}
+            >
+              {isEditing ? (
+                <>
+                  <CheckIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+                  Done
+                </>
+              ) : (
+                <>
+                  <PencilIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+                  Edit
+                </>
+              )}
+            </button>
             <button
               onClick={handleCopy}
               className="flex items-center px-3 sm:px-4 py-2 bg-gray-700 hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-md transition-colors duration-200 text-sm sm:text-base"
@@ -197,8 +228,23 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
         )}
 
         <div className="bg-gray-50 dark:bg-zinc-800 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-zinc-700">
-          <div className="text-gray-900 dark:text-gray-100 leading-relaxed space-y-3 sm:space-y-4 text-sm sm:text-base">
-            {coverLetter.split('\n').map((line, index) => {
+          {isEditing ? (
+            /* Edit Mode: Textarea */
+            <div className="relative">
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                className="w-full min-h-[400px] p-4 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Edit your content here..."
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Tip: Use **text** for bold headers, and *   for bullet points
+              </p>
+            </div>
+          ) : (
+            /* View Mode: Rendered Markdown */
+            <div className="text-gray-900 dark:text-gray-100 leading-relaxed space-y-3 sm:space-y-4 text-sm sm:text-base">
+            {currentContent.split('\n').map((line, index) => {
               const trimmedLine = line.trim()
               
               if (trimmedLine === '') {
@@ -330,6 +376,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               )
             })}
           </div>
+          )}
         </div>
       </div>
     </div>
