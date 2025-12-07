@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
 import { type ThemeId } from '@/documents/themes'
 import InterviewQuestions from './InterviewQuestions'
 import ThemeSelector from './ThemeSelector'
+import StructuredEditor from './StructuredEditor'
 
 interface MatchAnalysis {
   score: number
@@ -84,6 +85,7 @@ function ATSScoreGauge({ score }: { score: number }) {
 export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, onContinue, isLoading, isOptimizing, isIncomplete, formData }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [useRawEditor, setUseRawEditor] = useState(false) // Toggle between structured and raw
   const [editedContent, setEditedContent] = useState(coverLetter)
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>('modern')
   // Debounced content for PDF generation - prevents re-renders while typing
@@ -287,17 +289,54 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
         <div className="bg-gray-50 dark:bg-zinc-800 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-zinc-700">
           {isEditing ? (
-            /* Edit Mode: Textarea */
+            /* Edit Mode */
             <div className="relative">
-              <textarea
-                value={editedContent}
-                onChange={(e) => setEditedContent(e.target.value)}
-                className="w-full min-h-[400px] p-4 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Edit your content here..."
-              />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Tip: Use **text** for bold headers, and *   for bullet points
-              </p>
+              {/* Editor Toggle */}
+              <div className="flex items-center justify-end mb-3 gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Editor mode:</span>
+                <button
+                  onClick={() => setUseRawEditor(false)}
+                  className={`px-2.5 py-1 text-xs rounded-l-md border transition-colors ${
+                    !useRawEditor
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  Structured
+                </button>
+                <button
+                  onClick={() => setUseRawEditor(true)}
+                  className={`px-2.5 py-1 text-xs rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1 ${
+                    useRawEditor
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                  }`}
+                >
+                  <CodeBracketIcon className="w-3 h-3" />
+                  Raw
+                </button>
+              </div>
+              
+              {useRawEditor ? (
+                /* Raw Markdown Editor */
+                <>
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    className="w-full min-h-[400px] p-4 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Edit your content here..."
+                  />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Tip: Use **text** for bold headers, and *   for bullet points
+                  </p>
+                </>
+              ) : (
+                /* Structured Form Editor */
+                <StructuredEditor
+                  content={editedContent}
+                  onChange={setEditedContent}
+                />
+              )}
             </div>
           ) : (
             /* View Mode: Rendered Markdown */
