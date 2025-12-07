@@ -93,7 +93,7 @@ ${sanitizedKeywords.join(', ')}
 Return the optimized resume with these keywords naturally woven into existing content where appropriate.`
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: process.env.PRIMARY_MODEL || "gemini-2.0-flash",
       config: {
         systemInstruction,
       },

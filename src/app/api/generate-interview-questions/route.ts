@@ -115,7 +115,7 @@ ${sanitizedResume}
 Generate personalized interview questions based on this specific match.`
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: process.env.SECONDARY_MODEL || "gemini-2.0-flash",
       config: {
         systemInstruction,
         responseMimeType: "application/json",

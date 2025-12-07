@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
           const analysisPrompt = constructAnalysisPrompt(jobDescription, resume)
           
           const analysisResponse = await ai.models.generateContent({
-            model: "gemini-2.5-pro",
+            model: process.env.PRIMARY_MODEL || "gemini-2.0-flash",
             config: {
               systemInstruction: ANALYSIS_SYSTEM_PROMPT,
               responseMimeType: "application/json",
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
           
           // Stream the generation for progressive rendering
           const generationStream = await ai.models.generateContentStream({
-            model: "gemini-2.5-pro",
+            model: "gemini-2.5-flash",
             config: {
               systemInstruction: GENERATION_SYSTEM_PROMPT,
               responseMimeType: "application/json",
