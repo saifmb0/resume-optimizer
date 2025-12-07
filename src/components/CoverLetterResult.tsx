@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon, CodeBracketIcon } from '@heroicons/react/24/outline'
+import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon, CodeBracketIcon, EyeIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
 import { type ThemeId } from '@/documents/themes'
 import InterviewQuestions from './InterviewQuestions'
 import ThemeSelector from './ThemeSelector'
 import StructuredEditor from './StructuredEditor'
+import LivePreview from './LivePreview'
 
 interface MatchAnalysis {
   score: number
@@ -86,6 +87,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [useRawEditor, setUseRawEditor] = useState(false) // Toggle between structured and raw
+  const [showSplitPreview, setShowSplitPreview] = useState(true) // Show live preview in split view
   const [editedContent, setEditedContent] = useState(coverLetter)
   const [selectedTheme, setSelectedTheme] = useState<ThemeId>('modern')
   // Debounced content for PDF generation - prevents re-renders while typing
@@ -145,8 +147,13 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
     }
   }, [memoizedPdfDocument])
 
+  // Use wider container when editing in split view
+  const containerClass = isEditing && showSplitPreview 
+    ? "max-w-7xl mx-auto p-4 sm:p-6" 
+    : "max-w-4xl mx-auto p-4 sm:p-6"
+
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className={containerClass}>
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Results</h2>
@@ -289,54 +296,93 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
         <div className="bg-gray-50 dark:bg-zinc-800 p-4 sm:p-6 rounded-lg border border-gray-200 dark:border-zinc-700">
           {isEditing ? (
-            /* Edit Mode */
+            /* Edit Mode with Split Preview */
             <div className="relative">
-              {/* Editor Toggle */}
-              <div className="flex items-center justify-end mb-3 gap-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">Editor mode:</span>
+              {/* Editor Controls */}
+              <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
+                {/* Editor Mode Toggle */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Editor:</span>
+                  <button
+                    onClick={() => setUseRawEditor(false)}
+                    className={`px-2.5 py-1 text-xs rounded-l-md border transition-colors ${
+                      !useRawEditor
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    Structured
+                  </button>
+                  <button
+                    onClick={() => setUseRawEditor(true)}
+                    className={`px-2.5 py-1 text-xs rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1 ${
+                      useRawEditor
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                    }`}
+                  >
+                    <CodeBracketIcon className="w-3 h-3" />
+                    Raw
+                  </button>
+                </div>
+                
+                {/* Split Preview Toggle - only visible on large screens */}
                 <button
-                  onClick={() => setUseRawEditor(false)}
-                  className={`px-2.5 py-1 text-xs rounded-l-md border transition-colors ${
-                    !useRawEditor
-                      ? 'bg-blue-600 text-white border-blue-600'
+                  onClick={() => setShowSplitPreview(!showSplitPreview)}
+                  className={`hidden lg:flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                    showSplitPreview
+                      ? 'bg-purple-600 text-white border-purple-600'
                       : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
                   }`}
                 >
-                  Structured
-                </button>
-                <button
-                  onClick={() => setUseRawEditor(true)}
-                  className={`px-2.5 py-1 text-xs rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1 ${
-                    useRawEditor
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                  }`}
-                >
-                  <CodeBracketIcon className="w-3 h-3" />
-                  Raw
+                  <EyeIcon className="w-3.5 h-3.5" />
+                  {showSplitPreview ? 'Hide Preview' : 'Show Preview'}
                 </button>
               </div>
               
-              {useRawEditor ? (
-                /* Raw Markdown Editor */
-                <>
-                  <textarea
-                    value={editedContent}
-                    onChange={(e) => setEditedContent(e.target.value)}
-                    className="w-full min-h-[400px] p-4 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Edit your content here..."
-                  />
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Tip: Use **text** for bold headers, and *   for bullet points
-                  </p>
-                </>
-              ) : (
-                /* Structured Form Editor */
-                <StructuredEditor
-                  content={editedContent}
-                  onChange={setEditedContent}
-                />
-              )}
+              {/* Split Layout: Editor + Preview */}
+              <div className={`${showSplitPreview ? 'lg:grid lg:grid-cols-2 lg:gap-6' : ''}`}>
+                {/* Editor Column */}
+                <div className="min-w-0">
+                  {useRawEditor ? (
+                    /* Raw Markdown Editor */
+                    <>
+                      <textarea
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="w-full min-h-[400px] lg:min-h-[600px] p-4 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-600 rounded-lg text-gray-900 dark:text-gray-100 text-sm font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Edit your content here..."
+                      />
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Tip: Use **text** for bold headers, and *   for bullet points
+                      </p>
+                    </>
+                  ) : (
+                    /* Structured Form Editor */
+                    <StructuredEditor
+                      content={editedContent}
+                      onChange={setEditedContent}
+                    />
+                  )}
+                </div>
+                
+                {/* Live Preview Column - Desktop Only */}
+                {showSplitPreview && (
+                  <div className="hidden lg:block min-w-0">
+                    <div className="sticky top-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                          Live Preview
+                        </span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          Updates as you type
+                        </span>
+                      </div>
+                      <LivePreview content={debouncedContent} />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* View Mode: Rendered Markdown */
