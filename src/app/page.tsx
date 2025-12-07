@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
+import ApplicationHistory from '@/components/ApplicationHistory'
 import { parseSSEStream } from '@/hooks/useSSEStream'
+import { useApplicationHistory } from '@/hooks/useApplicationHistory'
 
 interface FormData {
   jobDescription: string
@@ -26,6 +28,59 @@ export default function Home() {
   const [formData, setFormData] = useState<FormData | null>(null)
   // Track incomplete generation for "Continue" feature
   const [incompleteText, setIncompleteText] = useState<string | null>(null)
+  // Track current application ID for history
+  const [currentAppId, setCurrentAppId] = useState<string | null>(null)
+
+  // Application history management
+  const {
+    applications,
+    activeId,
+    saveApplication,
+    loadApplication,
+    deleteApplication,
+    renameApplication,
+    clearActive,
+  } = useApplicationHistory()
+
+  // Auto-save when generation completes
+  useEffect(() => {
+    if (formData && coverLetter && matchAnalysis && !isLoading) {
+      const appId = saveApplication({
+        jobDescription: formData.jobDescription,
+        resume: formData.resume,
+        tone: formData.tone,
+        generatedContent: coverLetter,
+        matchAnalysis,
+      }, currentAppId || undefined)
+      setCurrentAppId(appId)
+    }
+  }, [coverLetter, matchAnalysis, isLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle loading an application from history
+  const handleLoadFromHistory = (id: string) => {
+    const app = loadApplication(id)
+    if (app) {
+      setFormData({
+        jobDescription: app.jobDescription,
+        resume: app.resume,
+        tone: app.tone,
+      })
+      setCoverLetter(app.generatedContent || '')
+      setMatchAnalysis(app.matchAnalysis || null)
+      setCurrentAppId(id)
+      setIncompleteText(null)
+    }
+  }
+
+  // Start a new application (clear current state)
+  const handleNewApplication = () => {
+    setCoverLetter('')
+    setMatchAnalysis(null)
+    setFormData(null)
+    setCurrentAppId(null)
+    setIncompleteText(null)
+    clearActive()
+  }
 
   const handleGenerate = async (data: FormData, continueFrom?: string) => {
     setIsLoading(true)
@@ -148,9 +203,7 @@ export default function Home() {
   }
 
   const handleStartOver = () => {
-    setCoverLetter('')
-    setMatchAnalysis(null)
-    setFormData(null)
+    handleNewApplication()
   }
 
   return (
@@ -167,7 +220,15 @@ export default function Home() {
                 Create personalized, professional CVs & Cover letters in seconds with Google Gemini
               </p>
             </div>
-            <div className="flex-shrink-0">
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <ApplicationHistory
+                applications={applications}
+                activeId={activeId}
+                onSelect={handleLoadFromHistory}
+                onDelete={deleteApplication}
+                onRename={renameApplication}
+                onNewApplication={handleNewApplication}
+              />
               <DarkModeToggle />
             </div>
           </div>
