@@ -49,9 +49,10 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    // Dynamic import to avoid pdf-parse test file issue during build
-    // pdf-parse v1.1.1 tries to load a test PDF at import time
-    const pdf = (await import('pdf-parse')).default
+    // Use pdf-parse/lib/pdf-parse directly to skip the test file issue
+    // The main pdf-parse module tries to load ./test/data/05-versions-space.pdf
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdf = require('pdf-parse/lib/pdf-parse')
     
     // Parse PDF using pdf-parse v1.1.1 functional API
     const data = await pdf(buffer)
