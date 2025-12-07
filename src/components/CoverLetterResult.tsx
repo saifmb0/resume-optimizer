@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, SparklesIcon, PencilIcon, CheckIcon, CodeBracketIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { ClipboardIcon, ArrowDownTrayIcon, ArrowPathIcon, PencilIcon, CheckIcon, CodeBracketIcon, EyeIcon } from '@heroicons/react/24/outline'
 import { pdf } from '@react-pdf/renderer'
 import { CvDocument } from '@/documents/CvDocument'
 import { type ThemeId } from '@/documents/themes'
@@ -9,6 +9,7 @@ import InterviewQuestions from './InterviewQuestions'
 import ThemeSelector from './ThemeSelector'
 import StructuredEditor from './StructuredEditor'
 import LivePreview from './LivePreview'
+import KeywordPills from './KeywordPills'
 
 interface MatchAnalysis {
   score: number
@@ -116,6 +117,33 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
   // Use edited content for copy (immediate), debounced for PDF
   const currentContent = editedContent
+
+  // Get keyword placement suggestions from API
+  const handleGetKeywordSuggestions = useCallback(async (keyword: string): Promise<string[]> => {
+    if (!formData) return []
+    
+    try {
+      const response = await fetch('/api/keyword-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword,
+          resume: formData.resume,
+          jobDescription: formData.jobDescription,
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to get suggestions')
+      }
+      
+      const data = await response.json()
+      return data.suggestions || []
+    } catch (error) {
+      console.error('Error getting keyword suggestions:', error)
+      return []
+    }
+  }, [formData])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -259,35 +287,16 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                   </p>
                 </div>
                 
-                {/* Missing Keywords */}
+                {/* Missing Keywords - Interactive Pills */}
                 {matchAnalysis.missingKeywords && matchAnalysis.missingKeywords.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Keywords to Consider Adding
-                      </h4>
-                      {onOptimize && (
-                        <button
-                          onClick={() => onOptimize(matchAnalysis.missingKeywords)}
-                          disabled={isOptimizing || isLoading}
-                          className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white text-xs font-medium rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
-                        >
-                          <SparklesIcon className="w-3.5 h-3.5 mr-1.5" />
-                          {isOptimizing ? 'Optimizing...' : 'Optimize Resume'}
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {matchAnalysis.missingKeywords.map((keyword, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700"
-                        >
-                          {keyword}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+                  <KeywordPills
+                    keywords={matchAnalysis.missingKeywords}
+                    onOptimize={onOptimize}
+                    onGetSuggestions={formData ? handleGetKeywordSuggestions : undefined}
+                    isOptimizing={isOptimizing}
+                    isLoading={isLoading}
+                    generatedContent={currentContent}
+                  />
                 )}
               </div>
             </div>
