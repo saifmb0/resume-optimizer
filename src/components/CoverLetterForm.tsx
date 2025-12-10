@@ -319,9 +319,11 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
                 <button
                   type="button"
                   onClick={() => {
-                    clearFormData()
-                    setFormData({ jobDescription: '', resume: '', tone: 'CV' })
-                    setErrors({})
+                    if (window.confirm('Are you sure you want to clear your draft? This action cannot be undone.')) {
+                      clearFormData()
+                      setFormData({ jobDescription: '', resume: '', tone: 'CV' })
+                      setErrors({})
+                    }
                   }}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm underline"
                 >
