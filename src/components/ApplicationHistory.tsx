@@ -83,7 +83,17 @@ export default function ApplicationHistory({
   const activeApp = applications.find(app => app.id === activeId)
 
   if (applications.length === 0) {
-    return null // Don't show if no history
+    return (
+      <button
+        disabled
+        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-400 dark:text-gray-500 
+                   bg-gray-100 dark:bg-zinc-800/50 border border-gray-200 dark:border-zinc-700 rounded-lg
+                   cursor-not-allowed"
+      >
+        <ClockIcon className="w-4 h-4" />
+        <span className="hidden sm:inline">History</span>
+      </button>
+    )
   }
 
   return (
