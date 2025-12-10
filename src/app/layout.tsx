@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Free AI Cover Letter Generator | Gemini AI Powered | No Login Required",
   description: "Create personalized, professional cover letters in seconds using Google Gemini AI. Paste your job description and resume, choose your tone, and get a tailored cover letter instantly. 100% free with no registration required.",
-  keywords: "cover letter generator, AI cover letter, Gemini AI, free cover letter, job application, resume, career tools, CV generator",
+  keywords: "cover letter generator, AI cover letter, Gemini AI, resume optimizer, interview preparation, ATS friendly, job application, resume, career tools, CV generator",
   authors: [{ name: "AI Cover Letter Generator" }],
   openGraph: {
     title: "Free AI Cover Letter Generator",
