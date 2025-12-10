@@ -335,7 +335,7 @@ export default function Home() {
 
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="mb-4 text-white text-sm sm:text-base">© 2025 AI Resume Generator. Made with ❤️ for job seekers worldwide.</p>
+          <p className="mb-4 text-white text-sm sm:text-base">© {new Date().getFullYear()} AI Resume Generator. Made with ❤️ for job seekers worldwide.</p>
           <p className="text-gray-400 dark:text-gray-300 text-xs sm:text-sm">
             Powered by Google Gemini AI • No login required • 100% free
           </p>
