@@ -1,4 +1,5 @@
 import { SecurityDetection } from './validation'
+import { Logger, createLogger } from './logger'
 
 interface SecurityEvent {
   timestamp: string
@@ -9,6 +10,15 @@ interface SecurityEvent {
 }
 
 export class SecurityLogger {
+  private static logger: Logger = createLogger('SecurityLogger')
+
+  /**
+   * Inject a custom logger instance (useful for testing or production logging libraries)
+   */
+  static setLogger(logger: Logger) {
+    this.logger = logger
+  }
+
   static logSuspiciousActivity(
     event: string, 
     details: Record<string, unknown>, 
@@ -23,18 +33,24 @@ export class SecurityLogger {
       severity
     }
     
-    // Log to console in development
+    const meta: Record<string, unknown> = {
+      timestamp: logData.timestamp,
+      details: logData.details,
+      ip: logData.ip,
+      severity: logData.severity,
+    }
+    
+    // Log to console in development with emoji prefix for visibility
     if (process.env.NODE_ENV === 'development') {
-      console.warn('🚨 SECURITY_EVENT:', logData)
+      this.logger.warn(`🚨 SECURITY_EVENT: ${event}`, meta)
     }
     
     // In production, log as structured JSON for Vercel log aggregation
     // Vercel automatically captures console output and makes it queryable
-    // Use console.warn for visibility in log dashboard
     if (process.env.NODE_ENV === 'production') {
       // Structured logging for Vercel's log drain / log explorer
       // Format: JSON for easy parsing and filtering in Vercel dashboard
-      console.warn(JSON.stringify({
+      this.logger.warn(JSON.stringify({
         type: 'SECURITY_EVENT',
         ...logData
       }))

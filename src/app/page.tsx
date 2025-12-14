@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
@@ -43,7 +43,7 @@ export default function Home() {
   } = useApplicationHistory()
 
   // Auto-save when generation completes
-  useEffect(() => {
+  const handleAutoSave = useCallback(() => {
     if (formData && coverLetter && matchAnalysis && !isLoading) {
       const appId = saveApplication({
         jobDescription: formData.jobDescription,
@@ -54,7 +54,11 @@ export default function Home() {
       }, currentAppId || undefined)
       setCurrentAppId(appId)
     }
-  }, [coverLetter, matchAnalysis, isLoading]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [formData, coverLetter, matchAnalysis, isLoading, currentAppId, saveApplication])
+
+  useEffect(() => {
+    handleAutoSave()
+  }, [handleAutoSave])
 
   // Handle loading an application from history
   const handleLoadFromHistory = (id: string) => {
@@ -335,7 +339,7 @@ export default function Home() {
 
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="mb-4 text-white text-sm sm:text-base">© {new Date().getFullYear()} AI Resume Generator. Made with ❤️ for job seekers worldwide.</p>
+          <p className="mb-4 text-white text-sm sm:text-base">© 2025 AI Resume Generator. Made with ❤️ for job seekers worldwide.</p>
           <p className="text-gray-400 dark:text-gray-300 text-xs sm:text-sm">
             Powered by Google Gemini AI • No login required • 100% free
           </p>
