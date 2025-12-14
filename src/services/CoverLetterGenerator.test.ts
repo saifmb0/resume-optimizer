@@ -30,7 +30,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: ['kubernetes'],
           strengths: ['React', 'TypeScript', 'Node.js'],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       vi.spyOn(mockClient.models, 'generateContent').mockResolvedValue(mockResponse)
 
@@ -46,7 +50,7 @@ describe('CoverLetterGenerator', () => {
     })
 
     it('should throw error when analysis returns empty text', async () => {
-      const mockResponse = { text: '' }
+      const mockResponse = { text: '', data: {}, functionCalls: [], executableCode: [], codeExecutionResult: null } as any
       vi.spyOn(mockClient.models, 'generateContent').mockResolvedValue(mockResponse)
 
       await expect(
@@ -55,7 +59,7 @@ describe('CoverLetterGenerator', () => {
     })
 
     it('should throw error when analysis returns invalid JSON', async () => {
-      const mockResponse = { text: 'not valid json' }
+      const mockResponse = { text: 'not valid json', data: {}, functionCalls: [], executableCode: [], codeExecutionResult: null } as any
       vi.spyOn(mockClient.models, 'generateContent').mockResolvedValue(mockResponse)
 
       await expect(
@@ -69,7 +73,11 @@ describe('CoverLetterGenerator', () => {
           score: 'invalid', // Should be number
           reasoning: 'Test',
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
       vi.spyOn(mockClient.models, 'generateContent').mockResolvedValue(mockResponse)
 
       await expect(
@@ -85,7 +93,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: [],
           strengths: [],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
       vi.spyOn(mockClient.models, 'generateContent').mockResolvedValue(mockResponse)
 
       await expect(
@@ -235,7 +247,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: ['AWS'],
           strengths: ['React'],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       const mockGenStream = {
         [Symbol.asyncIterator]: async function* () {
@@ -267,7 +283,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: [],
           strengths: [],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       const mockGenStream = {
         [Symbol.asyncIterator]: async function* () {
@@ -299,7 +319,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: [],
           strengths: ['React', 'Node'],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       const generatedDoc = 'Dear Hiring Manager, I am excited to apply for this position. My experience with React and Node.js makes me an ideal candidate for your team. Sincerely, John Doe'
       const mockGenStream = {
@@ -333,7 +357,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: [],
           strengths: [],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       const mockGenStream = {
         [Symbol.asyncIterator]: async function* () {
@@ -404,7 +432,11 @@ describe('CoverLetterGenerator', () => {
           missingKeywords: [],
           strengths: [],
         }),
-      }
+        data: {},
+        functionCalls: [],
+        executableCode: [],
+        codeExecutionResult: null,
+      } as any
 
       const mockGenStream = {
         [Symbol.asyncIterator]: async function* () {
