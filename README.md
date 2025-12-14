@@ -1,90 +1,115 @@
-Resume Optimizer — Project Overview
-Semantic Resume Architect is a privacy-first, AST-driven career document engine designed to generate and optimize resumes and cover letters using Large Language Models (Gemini 2.5 Flash). Unlike typical wrapper applications, this project implements a dual-phase AI generation pipeline and utilizes a custom Abstract Syntax Tree (AST) implementation to ensure structural integrity across document formats.
+# 🚀 AI CV & Cover Letter Generator
 
-The architecture prioritizes stateless execution, ensuring user data is processed in-memory and never persisted to disk, mitigating GDPR and data privacy concerns.
+[![GitHub stars](https://img.shields.io/github/stars/saifmb0/cvmaker.svg?style=social&label=Star)](https://github.com/saifmb0/cvmaker)
+[![GitHub forks](https://img.shields.io/github/forks/saifmb0/cvmaker.svg?style=social&label=Fork)](https://github.com/saifmb0/cvmaker/fork)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Technical Architecture
-Core Components
-Frontend: Next.js 14 (App Router), React 18, TypeScript.
+A modern web application that generates personalized CVs, cover letters, and "why do you want to work here" statements using Google's Gemini AI. Paste a job description and your background, select your desired output type, and get professionally crafted content in seconds - completely free with no login required!
 
-State Management: Custom useDocumentReducer leveraging a uni-directional data flow for document manipulation.
+## ✨ Features
 
-Document Parsing: Unified/Remark-based AST parsing for robust Markdown-to-Structure conversion, eliminating fragile regex-based string manipulation.
+- **🤖 AI-Powered** - Google Gemini 2.5 Flash for intelligent content generation
+- **📄 Multiple Output Types** - Generate CVs, Cover Letters, or "Why Work Here" statements  
+- **⚡ Fast** - Professional content in under 30 seconds
+- **🔒 Private** - No data storage, completely stateless
+- **🌙 Dark Mode** - Beautiful dark/light theme toggle
+- **📱 Responsive** - Works perfectly on all devices
+- **📄 PDF Export** - Download generated content as PDF
+- **♿ Accessible** - High contrast, keyboard navigation, screen reader friendly
 
-AI Orchestration: Google Gemini 2.5 Flash via a dedicated Service Layer pattern.
+## 🛠️ Tech Stack
 
-Streaming: Server-Sent Events (SSE) for real-time generation feedback and progressive rendering.
+- **Framework**: Next.js 14 (App Router), React 18, TypeScript
+- **Styling**: Tailwind CSS v4
+- **AI**: Google Gemini 2.5 Flash API
+- **PDF**: jsPDF
 
-Design Patterns
-Service-Repository Pattern: Business logic for AI interaction and document processing is isolated from Next.js API routes, facilitating unit testing and separation of concerns.
+## 🚀 Quick Start
 
-Prompt Chaining: Implements a two-phase "Reasoning-Action" chain where the model first analyzes the job description (Phase 1) before generating content based on that analysis (Phase 2).
+### Prerequisites
 
-Dependency Injection: External services (GenAI clients, Loggers) are injected into consumers to support strictly typed mocking in test suites.
+- Node.js 18+ 
+- Google Gemini API key ([get one free](https://makersuite.google.com/app/apikey))
 
-Features
-Context-Aware Generation: Utilizes a dual-pass prompting strategy to extract keywords and tonal requirements from job descriptions before content generation.
-
-Structured Document Editor: A block-based editor that maintains document structure programmatically, preventing formatting corruption common in raw text editors.
-
-Stateless Architecture: Zero-retention data processing pipeline.
-
-Edge-Ready: Optimized for serverless deployment with lightweight runtime requirements.
-
-Getting Started
-Prerequisites
-Node.js 18.17 or later
-
-Google Gemini API Key
-
-Installation
-Clone the repository:
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/saifmb0/cvmaker.git
+cd cvmaker
 
-git clone https://github.com/saifmb0/resume-optimizer.git
-cd resume-optimizer
-```
-Install dependencies:
+# Install dependencies
+npm install
 
-```bash
+# Set up environment variables
+# Create .env.local with:
+# GEMINI_API_KEY=your_gemini_api_key_here
 
-npm ci
-```
-Configure environment variables: Create a .env.local file in the root directory:
-
-```bash
-
-GEMINI_API_KEY=your_key_here
-```
-Run the development server:
-
-```bash
-
+# Run the development server
 npm run dev
 ```
-Testing Strategy
-This project enforces high code quality standards through a comprehensive testing matrix:
 
-Unit Tests (Vitest): Cover core business logic, including the AST parser, prompt construction, and validation schemas.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Integration Tests: Verify the interaction between the Service Layer and mocked AI endpoints.
+## 📁 Project Structure
 
-E2E Tests (Playwright): Validate critical user flows including form submission, editor interaction, and export functionality.
-
-To run the test suite:
-
-```bash
-
-npm run test:unit
-npm run test:e2e
 ```
-Security
-Input Sanitization: Strict Zod schemas validate all incoming request bodies.
+src/
+├── app/
+│   ├── api/generate-cover-letter/  # Gemini AI integration
+│   ├── globals.css                 # Global styles
+│   ├── layout.tsx                  # Root layout
+│   └── page.tsx                    # Main page
+├── components/
+│   ├── CoverLetterForm.tsx         # Input form
+│   ├── CoverLetterResult.tsx       # Results display
+│   └── DarkModeToggle.tsx          # Theme toggle
+├── contexts/
+│   └── DarkModeContext.tsx         # Theme state
+└── utils/
+    ├── rateLimit.ts                # Rate limiting
+    ├── securityLogger.ts           # Security logging
+    └── validation.ts               # Input validation
+```
 
-Prompt Injection Defense: Context-aware heuristic analysis detects and blocks adversarial inputs before they reach the LLM.
+## 🔧 Environment Variables
 
-Rate Limiting: Token-bucket algorithm implemented via Redis/Upstash prevents API abuse.
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GEMINI_API_KEY` | Google Gemini API key | Yes |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics ID | No |
 
-License
-MIT
+## 🚀 Deployment
+
+Deploy easily to Vercel:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/saifmb0/cvmaker)
+
+Remember to add your `GEMINI_API_KEY` in the Vercel environment variables.
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is open source under the [MIT License](LICENSE).
+
+## 🆘 Support
+
+- Create an [Issue](../../issues) for bugs or feature requests
+- Check the FAQ section in the app
+
+---
+
+**Made with ❤️ for job seekers worldwide**
+
+*Powered by Google Gemini AI*
+
+
