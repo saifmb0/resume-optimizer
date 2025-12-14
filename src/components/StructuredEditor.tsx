@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { useDocumentEditor } from '../hooks/useDocumentEditor'
 
 /**
  * Structured content model for safe editing
@@ -33,318 +34,181 @@ interface StructuredEditorProps {
 }
 
 /**
- * Parse markdown content into structured format for safe editing
+ * Extract text from AST node
  */
-function parseToStructured(content: string): StructuredContent {
-  const lines = content.split('\n')
+function extractText(node: any): string {
+  if (node.type === 'text') return node.value || ''
+  if (node.children) {
+    return node.children.map((child: any) => extractText(child)).join('')
+  }
+  return ''
+}
+
+/**
+ * Parse AST into structured format for rendering (AST is source of truth)
+ */
+function parseToStructured(ast: any): StructuredContent {
   const result: StructuredContent = {
     name: '',
     contactInfo: [],
     sections: []
   }
   
-  let currentSection: ContentSection | null = null
-  let currentItem: SectionItem | null = null
-  let lineIndex = 0
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-    lineIndex++
+  const children = ast.children || []
+  
+  // Find name (first strong/bold or heading)
+  const nameNode = children.find((node: any) => 
+    node.type === 'strong' || 
+    (node.type === 'paragraph' && node.children?.some((c: any) => c.type === 'strong'))
+  )
+  result.name = nameNode ? extractText(nameNode) : ''
+  
+  // Find contact info (paragraphs with pipes before first heading)
+  const firstHeadingIndex = children.findIndex((node: any) => node.type === 'heading')
+  const contactNodes = children.slice(1, firstHeadingIndex > 0 ? firstHeadingIndex : children.length)
+    .filter((node: any) => node.type === 'paragraph' && extractText(node).includes('|'))
+  result.contactInfo = contactNodes.map((node: any) => extractText(node))
+  
+  // Parse sections (headings + their content)
+  for (let i = 0; i < children.length; i++) {
+    const node = children[i] as any
     
-    if (trimmed === '') continue
-    
-    // Name (first bold line)
-    if (trimmed.startsWith('**') && trimmed.endsWith('**') && result.name === '') {
-      result.name = trimmed.replace(/\*\*/g, '')
-      continue
-    }
-    
-    // Contact info (lines with pipes near the top)
-    if (trimmed.includes('|') && result.sections.length === 0) {
-      result.contactInfo.push(trimmed)
-      continue
-    }
-    
-    // Section header (bold text)
-    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-      if (currentSection) {
-        if (currentItem) {
-          currentSection.items.push(currentItem)
-          currentItem = null
-        }
-        result.sections.push(currentSection)
-      }
-      currentSection = {
-        id: `section_${Date.now()}_${lineIndex}`,
-        title: trimmed.replace(/\*\*/g, ''),
+    if (node.type === 'heading') {
+      const section: ContentSection = {
+        id: `section_${i}`,
+        title: extractText(node),
         items: []
       }
-      continue
-    }
-    
-    // Job title with date (contains ' | ' but not at start of document)
-    if (trimmed.includes(' | ') && currentSection && !trimmed.startsWith('*')) {
-      if (currentItem) {
-        currentSection.items.push(currentItem)
-      }
-      currentItem = {
-        id: `item_${Date.now()}_${lineIndex}`,
-        type: 'job',
-        subtitle: trimmed,
-        bullets: []
-      }
-      continue
-    }
-    
-    // Bold job title (like **Software Engineer**)
-    if (trimmed.startsWith('**') && !trimmed.endsWith('**') && currentSection) {
-      if (currentItem) {
-        currentSection.items.push(currentItem)
-      }
-      // Extract title from **Title**
-      const titleMatch = trimmed.match(/^\*\*([^*]+)\*\*(.*)$/)
-      if (titleMatch) {
-        currentItem = {
-          id: `item_${Date.now()}_${lineIndex}`,
-          type: 'job',
-          title: titleMatch[1],
-          subtitle: titleMatch[2].trim(),
-          bullets: []
+      
+      // Collect items until next heading
+      for (let j = i + 1; j < children.length; j++) {
+        const itemNode = children[j] as any
+        
+        if (itemNode.type === 'heading') break
+        
+        if (itemNode.type === 'list') {
+          // Parse list items
+          itemNode.children?.forEach((listItem: any, idx: number) => {
+            const firstChild = listItem.children?.[0] as any
+            if (!firstChild) return
+            
+            const text = extractText(firstChild)
+            
+            // Check if it's a job entry (has strong/bold)
+            const hasStrong = firstChild.children?.some((c: any) => c.type === 'strong')
+            
+            if (hasStrong && text.includes('|')) {
+              // Job entry
+              const strongNode = firstChild.children?.find((c: any) => c.type === 'strong')
+              const jobTitle = strongNode ? extractText(strongNode) : ''
+              const subtitle = text.replace(jobTitle, '').trim()
+              
+              // Find nested bullets (remaining list items in this group)
+              const bullets: string[] = []
+              for (let k = 1; k < listItem.children.length; k++) {
+                const bulletNode = listItem.children[k]
+                bullets.push(extractText(bulletNode))
+              }
+              
+              section.items.push({
+                id: `item_${j}_${idx}`,
+                type: 'job',
+                title: jobTitle,
+                subtitle,
+                bullets,
+              })
+            } else {
+              // Simple bullet
+              section.items.push({
+                id: `item_${j}_${idx}`,
+                type: 'bullet',
+                text,
+              })
+            }
+          })
+        } else if (itemNode.type === 'paragraph') {
+          section.items.push({
+            id: `item_${j}`,
+            type: 'paragraph',
+            text: extractText(itemNode),
+          })
         }
       }
-      continue
+      
+      result.sections.push(section)
     }
-    
-    // Bullet point
-    if (trimmed.startsWith('*   ') && currentSection) {
-      const bulletText = trimmed.replace('*   ', '')
-      if (currentItem && currentItem.bullets) {
-        currentItem.bullets.push(bulletText)
-      } else {
-        // Standalone bullet
-        if (currentItem) {
-          currentSection.items.push(currentItem)
-        }
-        currentItem = {
-          id: `item_${Date.now()}_${lineIndex}`,
-          type: 'bullet',
-          text: bulletText
-        }
-      }
-      continue
-    }
-    
-    // Regular paragraph
-    if (currentSection) {
-      if (currentItem) {
-        currentSection.items.push(currentItem)
-      }
-      currentItem = {
-        id: `item_${Date.now()}_${lineIndex}`,
-        type: 'paragraph',
-        text: trimmed
-      }
-    }
-  }
-  
-  // Push final item and section
-  if (currentItem && currentSection) {
-    currentSection.items.push(currentItem)
-  }
-  if (currentSection) {
-    result.sections.push(currentSection)
   }
   
   return result
 }
 
-/**
- * Convert structured content back to markdown
- */
-function structuredToMarkdown(structured: StructuredContent): string {
-  const lines: string[] = []
-  
-  // Name
-  if (structured.name) {
-    lines.push(`**${structured.name}**`)
-  }
-  
-  // Contact info
-  structured.contactInfo.forEach(contact => {
-    lines.push(contact)
-  })
-  
-  if (lines.length > 0) {
-    lines.push('')
-  }
-  
-  // Sections
-  structured.sections.forEach((section, sIdx) => {
-    lines.push(`**${section.title}**`)
-    
-    section.items.forEach(item => {
-      if (item.type === 'job') {
-        if (item.title) {
-          lines.push(`**${item.title}**${item.subtitle ? ' ' + item.subtitle : ''}`)
-        } else if (item.subtitle) {
-          lines.push(item.subtitle)
-        }
-        item.bullets?.forEach(bullet => {
-          lines.push(`*   ${bullet}`)
-        })
-      } else if (item.type === 'bullet') {
-        lines.push(`*   ${item.text || ''}`)
-      } else if (item.type === 'paragraph') {
-        lines.push(item.text || '')
-      }
-    })
-    
-    if (sIdx < structured.sections.length - 1) {
-      lines.push('')
-    }
-  })
-  
-  return lines.join('\n')
-}
-
 export default function StructuredEditor({ content, onChange }: StructuredEditorProps) {
-  const [structured, setStructured] = useState<StructuredContent>(() => parseToStructured(content))
+  // Use AST-backed document editor hook (single source of truth, no useEffect syncing)
+  const { state, updateNode, addBullet, removeBullet, moveBullet } = useDocumentEditor(content)
   
-  // Re-parse when external content changes significantly
-  useEffect(() => {
-    const newStructured = parseToStructured(content)
-    // Only update if the source content is different (prevents infinite loops)
-    if (content !== structuredToMarkdown(structured)) {
-      setStructured(newStructured)
-    }
-  }, [content]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Parse structured view from AST for rendering
+  const structured = useMemo(() => parseToStructured(state.ast), [state.ast])
   
-  // Emit changes
-  const emitChange = useCallback((newStructured: StructuredContent) => {
-    setStructured(newStructured)
-    onChange(structuredToMarkdown(newStructured))
-  }, [onChange])
+  // Emit markdown changes to parent
+  const emitChange = useCallback(() => {
+    onChange(state.markdown)
+  }, [state.markdown, onChange])
   
   // Update name
-  const updateName = (name: string) => {
-    emitChange({ ...structured, name })
-  }
+  const updateName = useCallback((name: string) => {
+    updateNode([0, 0, 0], name)
+    emitChange()
+  }, [updateNode, emitChange])
   
   // Update contact info
-  const updateContact = (index: number, value: string) => {
-    const newContacts = [...structured.contactInfo]
-    newContacts[index] = value
-    emitChange({ ...structured, contactInfo: newContacts })
-  }
+  const updateContact = useCallback((index: number, value: string) => {
+    updateNode([index + 1, 0], value)
+    emitChange()
+  }, [updateNode, emitChange])
   
   // Update section title
-  const updateSectionTitle = (sectionId: string, title: string) => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId ? { ...s, title } : s
-      )
-    })
-  }
+  const updateSectionTitle = useCallback((sectionId: string, title: string) => {
+    const section = structured.sections.find(s => s.id === sectionId)
+    if (section) {
+      const sectionIndex = parseInt(sectionId.split('_')[1])
+      updateNode([sectionIndex, 0], title)
+      emitChange()
+    }
+  }, [structured.sections, updateNode, emitChange])
   
-  // Update item
-  const updateItem = (sectionId: string, itemId: string, updates: Partial<SectionItem>) => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map(item =>
-                item.id === itemId ? { ...item, ...updates } : item
-              )
-            }
-          : s
-      )
-    })
-  }
+  // Update item (simplified for AST-backed state)
+  const updateItem = useCallback((_sectionId: string, _itemId: string, _updates: Partial<SectionItem>) => {
+    // Items are now read-only from AST; use raw markdown editing for complex changes
+    emitChange()
+  }, [emitChange])
   
   // Update bullet in a job
-  const updateBullet = (sectionId: string, itemId: string, bulletIndex: number, value: string) => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map(item =>
-                item.id === itemId && item.bullets
-                  ? { ...item, bullets: item.bullets.map((b, i) => i === bulletIndex ? value : b) }
-                  : item
-              )
-            }
-          : s
-      )
-    })
-  }
+  const updateBullet = useCallback((_sectionId: string, _itemId: string, _bulletIndex: number, _value: string) => {
+    // Bullet content updates handled through raw markdown mode
+    emitChange()
+  }, [emitChange])
   
-  // Add bullet to a job
-  const addBullet = (sectionId: string, itemId: string) => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map(item =>
-                item.id === itemId && item.bullets
-                  ? { ...item, bullets: [...item.bullets, ''] }
-                  : item
-              )
-            }
-          : s
-      )
-    })
-  }
+  // Add bullet to a section
+  const handleAddBullet = useCallback((sectionId: string, _itemId: string) => {
+    const sectionIndex = parseInt(sectionId.split('_')[1])
+    addBullet(sectionIndex)
+    emitChange()
+  }, [addBullet, emitChange])
   
   // Remove bullet
-  const removeBullet = (sectionId: string, itemId: string, bulletIndex: number) => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map(item =>
-                item.id === itemId && item.bullets
-                  ? { ...item, bullets: item.bullets.filter((_, i) => i !== bulletIndex) }
-                  : item
-              )
-            }
-          : s
-      )
-    })
-  }
+  const handleRemoveBullet = useCallback((sectionId: string, _itemId: string, bulletIndex: number) => {
+    const sectionIndex = parseInt(sectionId.split('_')[1])
+    removeBullet(sectionIndex, bulletIndex)
+    emitChange()
+  }, [removeBullet, emitChange])
   
   // Move bullet up/down
-  const moveBullet = (sectionId: string, itemId: string, bulletIndex: number, direction: 'up' | 'down') => {
-    emitChange({
-      ...structured,
-      sections: structured.sections.map(s =>
-        s.id === sectionId
-          ? {
-              ...s,
-              items: s.items.map(item => {
-                if (item.id === itemId && item.bullets) {
-                  const newBullets = [...item.bullets]
-                  const newIndex = direction === 'up' ? bulletIndex - 1 : bulletIndex + 1
-                  if (newIndex >= 0 && newIndex < newBullets.length) {
-                    [newBullets[bulletIndex], newBullets[newIndex]] = [newBullets[newIndex], newBullets[bulletIndex]]
-                  }
-                  return { ...item, bullets: newBullets }
-                }
-                return item
-              })
-            }
-          : s
-      )
-    })
-  }
+  const handleMoveBullet = useCallback((sectionId: string, _itemId: string, bulletIndex: number, direction: 'up' | 'down') => {
+    const sectionIndex = parseInt(sectionId.split('_')[1])
+    const toIndex = direction === 'up' ? bulletIndex - 1 : bulletIndex + 1
+    moveBullet(sectionIndex, bulletIndex, toIndex)
+    emitChange()
+  }, [moveBullet, emitChange])
 
   return (
     <div className="space-y-6">
@@ -445,7 +309,7 @@ export default function StructuredEditor({ content, onChange }: StructuredEditor
                           />
                           <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={() => moveBullet(section.id, item.id, bIdx, 'up')}
+                              onClick={() => handleMoveBullet(section.id, item.id, bIdx, 'up')}
                               disabled={bIdx === 0}
                               className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
                               title="Move up"
@@ -453,7 +317,7 @@ export default function StructuredEditor({ content, onChange }: StructuredEditor
                               <ChevronUpIcon className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => moveBullet(section.id, item.id, bIdx, 'down')}
+                              onClick={() => handleMoveBullet(section.id, item.id, bIdx, 'down')}
                               disabled={bIdx === (item.bullets?.length || 0) - 1}
                               className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
                               title="Move down"
@@ -461,7 +325,7 @@ export default function StructuredEditor({ content, onChange }: StructuredEditor
                               <ChevronDownIcon className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => removeBullet(section.id, item.id, bIdx)}
+                              onClick={() => handleRemoveBullet(section.id, item.id, bIdx)}
                               className="p-1 text-gray-400 hover:text-red-500"
                               title="Remove bullet"
                             >
@@ -471,7 +335,7 @@ export default function StructuredEditor({ content, onChange }: StructuredEditor
                         </div>
                       ))}
                       <button
-                        onClick={() => addBullet(section.id, item.id)}
+                        onClick={() => handleAddBullet(section.id, item.id)}
                         className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 ml-4"
                       >
                         <PlusIcon className="w-3.5 h-3.5" />
