@@ -7,8 +7,8 @@ import { z } from 'zod'
 
 // Input validation schema
 const interviewQuestionsSchema = z.object({
-  resume: z.string().min(50, 'Resume must be at least 50 characters').max(15000, 'Resume too long'),
-  jobDescription: z.string().min(50, 'Job description must be at least 50 characters').max(10000, 'Job description too long'),
+  resume: z.string().min(10, 'Resume must be at least 10 characters').max(15000, 'Resume too long'),
+  jobDescription: z.string().min(10, 'Job description must be at least 10 characters').max(10000, 'Job description too long'),
 })
 
 // Response schema for structured output
