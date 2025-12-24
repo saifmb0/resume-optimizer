@@ -5,7 +5,7 @@ import CoverLetterForm from '@/components/CoverLetterForm'
 import CoverLetterResult from '@/components/CoverLetterResult'
 import DarkModeToggle from '@/components/DarkModeToggle'
 import ApplicationHistory from '@/components/ApplicationHistory'
-import { parseSSEStream } from '@/hooks/useSSEStream'
+import { parseSSEStream, type SSEBenchmark } from '@/hooks/useSSEStream'
 import { useApplicationHistory } from '@/hooks/useApplicationHistory'
 
 interface FormData {
@@ -30,6 +30,8 @@ export default function Home() {
   const [incompleteText, setIncompleteText] = useState<string | null>(null)
   // Track current application ID for history
   const [currentAppId, setCurrentAppId] = useState<string | null>(null)
+  // Track benchmark metrics
+  const [benchmarkMetrics, setBenchmarkMetrics] = useState<SSEBenchmark | null>(null)
 
   // Application history management
   const {
@@ -83,6 +85,7 @@ export default function Home() {
     setFormData(null)
     setCurrentAppId(null)
     setIncompleteText(null)
+    setBenchmarkMetrics(null)
     clearActive()
   }
 
@@ -135,6 +138,10 @@ export default function Home() {
         onIncomplete: (partialText) => {
           // Stream ended without completion - offer continue option
           setIncompleteText(partialText)
+        },
+        onBenchmark: (metrics) => {
+          setBenchmarkMetrics(metrics)
+          console.table(metrics)
         }
       })
       
@@ -312,6 +319,7 @@ export default function Home() {
               isOptimizing={isOptimizing}
               isIncomplete={!!incompleteText}
               formData={formData ?? undefined}
+              benchmarkMetrics={benchmarkMetrics ?? undefined}
             />
 
             <div className="text-center mt-6 sm:mt-8">
