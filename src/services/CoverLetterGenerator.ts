@@ -82,13 +82,20 @@ export class CoverLetterGenerator {
     }
 
     try {
+      // gemma models don't support systemInstruction, so conditionally include it
+      const supportsSystemInstruction = !model.includes('gemma')
+      const config: any = {
+        responseMimeType: 'application/json',
+        responseSchema: ANALYSIS_ONLY_SCHEMA,
+      }
+      
+      if (supportsSystemInstruction) {
+        config.systemInstruction = ANALYSIS_SYSTEM_PROMPT
+      }
+
       const analysisResponse = await this.aiClient.models.generateContent({
         model,
-        config: {
-          systemInstruction: ANALYSIS_SYSTEM_PROMPT,
-          responseMimeType: 'application/json',
-          responseSchema: ANALYSIS_ONLY_SCHEMA,
-        },
+        config,
         contents: analysisPrompt,
       })
 
