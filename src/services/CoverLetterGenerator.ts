@@ -88,7 +88,7 @@ export class CoverLetterGenerator {
       
       // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
       const finalPrompt = isGemmaModel
-        ? `${ANALYSIS_SYSTEM_PROMPT}\n\n---\n\n${analysisPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "score": <number 0-100>,\n  "reasoning": "<string>",\n  "missingKeywords": ["<keyword1>", "<keyword2>"]\n}\n\nDo NOT include any markdown, explanations, or text outside the JSON object.`
+        ? `${ANALYSIS_SYSTEM_PROMPT}\n\n---\n\n${analysisPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "score": <number 0-100>,\n  "reasoning": "<2-3 sentence explanation>",\n  "missingKeywords": ["<keyword1>", "<keyword2>", ...],\n  "strengths": ["<strength1>", "<strength2>", ...]\n}\n\nAll four fields are REQUIRED. Do NOT include any markdown, explanations, or text outside the JSON object.`
         : analysisPrompt
       
       if (!isGemmaModel) {
