@@ -141,6 +141,10 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // Send immediate "ping" to acknowledge connection
+          // This drops TTFB from ~11s to ~100ms by forcing headers to flush
+          controller.enqueue(encoder.encode(formatSSE('ping', {})))
+
           // Use service to generate with streaming
           for await (const event of generator.generateStream(input)) {
             controller.enqueue(encoder.encode(formatSSE(event.type, event.data)))
