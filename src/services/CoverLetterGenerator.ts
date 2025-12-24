@@ -138,13 +138,20 @@ export class CoverLetterGenerator {
     }
 
     try {
+      // gemma models don't support systemInstruction, so conditionally include it
+      const supportsSystemInstruction = !model.includes('gemma')
+      const config: any = {
+        responseMimeType: 'application/json',
+        responseSchema: GENERATION_ONLY_SCHEMA,
+      }
+      
+      if (supportsSystemInstruction) {
+        config.systemInstruction = GENERATION_SYSTEM_PROMPT
+      }
+
       const generationStream = await this.aiClient.models.generateContentStream({
         model,
-        config: {
-          systemInstruction: GENERATION_SYSTEM_PROMPT,
-          responseMimeType: 'application/json',
-          responseSchema: GENERATION_ONLY_SCHEMA,
-        },
+        config,
         contents: generationPrompt,
       })
 
