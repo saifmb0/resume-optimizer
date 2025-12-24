@@ -94,6 +94,9 @@ export default function Home() {
     setFormData(data)
     setIncompleteText(null)
     
+    // Start the timer BEFORE the network request
+    const startTime = performance.now()
+    
     // If continuing, keep existing content; otherwise reset
     if (!continueFrom) {
       setCoverLetter('')
@@ -143,7 +146,7 @@ export default function Home() {
           setBenchmarkMetrics(metrics)
           console.table(metrics)
         }
-      })
+      }, startTime)
       
       if (errorOccurred) return
       
