@@ -148,7 +148,9 @@ export default function Home() {
         },
         onBenchmark: (metrics) => {
           setBenchmarkMetrics(metrics)
-          console.table(metrics)
+          if (process.env.NODE_ENV === 'development') {
+            console.table(metrics)
+          }
         }
       }, startTime)
       

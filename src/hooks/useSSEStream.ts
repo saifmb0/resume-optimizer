@@ -141,8 +141,10 @@ export async function parseSSEStream(
   const benchmarkMetrics = benchmark.finalize()
   callbacks.onBenchmark?.(benchmarkMetrics)
 
-  // Log benchmark report for debugging
-  console.log(benchmark.getReport())
+  // Log benchmark report for debugging (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(benchmark.getReport())
+  }
 
   return {
     completed: streamCompleted,

@@ -166,9 +166,10 @@ export class CoverLetterGenerator {
       }
 
       // Phase 1: Analysis (heavy processing)
-      console.time('Gemini:Analysis')
+      const isDev = process.env.NODE_ENV === 'development'
+      if (isDev) console.time('Gemini:Analysis')
       const analysis = await this.analyzeResume(input.jobDescription, input.resume)
-      console.timeEnd('Gemini:Analysis')
+      if (isDev) console.timeEnd('Gemini:Analysis')
 
       // Yield analysis result
       yield {
@@ -187,7 +188,7 @@ export class CoverLetterGenerator {
       }
 
       // Phase 2: Generation
-      console.time('Gemini:Generation')
+      if (isDev) console.time('Gemini:Generation')
       const generatedDocument = await this.generateDocument(
         input.jobDescription,
         input.resume,
@@ -195,7 +196,7 @@ export class CoverLetterGenerator {
         analysis,
         input.continueFrom
       )
-      console.timeEnd('Gemini:Generation')
+      if (isDev) console.timeEnd('Gemini:Generation')
 
       // Validate output quality
       if (generatedDocument.length < 50) {
