@@ -72,71 +72,90 @@ export class CoverLetterGenerator {
 
   /**
    * Phase 1: Analyze resume against job description using ATS scoring
+   * Uses PRIMARY_MODEL with SECONDARY_MODEL fallback on failure
    */
   async analyzeResume(jobDescription: string, resume: string): Promise<AnalysisResult> {
     const analysisPrompt = constructAnalysisPrompt(jobDescription, resume)
-    const model = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
+    const primaryModel = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
+    const secondaryModel = process.env.SECONDARY_MODEL || 'gemini-2.5-flash'
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Gemini] Analysis using model: ${model}`)
-    }
-
-    try {
-      // gemma models don't support systemInstruction, JSON mode, or responseSchema
-      const isGemmaModel = model.includes('gemma')
-      const config: any = {}
-      
-      // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
-      const finalPrompt = isGemmaModel
-        ? `${ANALYSIS_SYSTEM_PROMPT}\n\n---\n\n${analysisPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "score": <number 0-100>,\n  "reasoning": "<2-3 sentence explanation>",\n  "missingKeywords": ["<keyword1>", "<keyword2>", ...],\n  "strengths": ["<strength1>", "<strength2>", ...]\n}\n\nAll four fields are REQUIRED. Do NOT include any markdown, explanations, or text outside the JSON object.`
-        : analysisPrompt
-      
-      if (!isGemmaModel) {
-        config.systemInstruction = ANALYSIS_SYSTEM_PROMPT
-        config.responseMimeType = 'application/json'
-        config.responseSchema = ANALYSIS_ONLY_SCHEMA
+    // Try primary model first, fallback to secondary on error
+    for (const model of [primaryModel, secondaryModel]) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Gemini] Analysis using model: ${model}`)
       }
 
-      const analysisResponse = await this.aiClient.models.generateContent({
-        model,
-        config,
-        contents: finalPrompt,
-      })
-
-      const analysisText = analysisResponse.text
-      if (!analysisText) {
-        throw new Error('Analysis phase returned empty response')
-      }
-
-      // Parse and validate analysis - extract JSON if wrapped in markdown
       try {
-        let jsonText = analysisText.trim()
+        // gemma models don't support systemInstruction, JSON mode, or responseSchema
+        const isGemmaModel = model.includes('gemma')
+        const config: any = {}
         
-        // For gemma models, extract JSON from potential markdown code blocks
-        if (isGemmaModel) {
-          const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
-                           jsonText.match(/(\{[\s\S]*\})/)
-          if (jsonMatch) {
-            jsonText = jsonMatch[1]
+        // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
+        const finalPrompt = isGemmaModel
+          ? `${ANALYSIS_SYSTEM_PROMPT}\n\n---\n\n${analysisPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "score": <number 0-100>,\n  "reasoning": "<2-3 sentence explanation>",\n  "missingKeywords": ["<keyword1>", "<keyword2>", ...],\n  "strengths": ["<strength1>", "<strength2>", ...]\n}\n\nAll four fields are REQUIRED. Do NOT include any markdown, explanations, or text outside the JSON object.`
+          : analysisPrompt
+        
+        if (!isGemmaModel) {
+          config.systemInstruction = ANALYSIS_SYSTEM_PROMPT
+          config.responseMimeType = 'application/json'
+          config.responseSchema = ANALYSIS_ONLY_SCHEMA
+        }
+
+        const analysisResponse = await this.aiClient.models.generateContent({
+          model,
+          config,
+          contents: finalPrompt,
+        })
+
+        const analysisText = analysisResponse.text
+        if (!analysisText) {
+          throw new Error('Analysis phase returned empty response')
+        }
+
+        // Parse and validate analysis - extract JSON if wrapped in markdown
+        try {
+          let jsonText = analysisText.trim()
+          
+          // For gemma models, extract JSON from potential markdown code blocks
+          if (isGemmaModel) {
+            const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
+                             jsonText.match(/(\{[\s\S]*\})/)
+            if (jsonMatch) {
+              jsonText = jsonMatch[1]
+            }
           }
+          
+          const jsonAnalysis = JSON.parse(jsonText)
+          return this.analysisSchema.parse(jsonAnalysis)
+        } catch (parseError) {
+          throw new Error(`Failed to parse analysis response: ${parseError}`)
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Gemini] Analysis error with model ${model}:`, errorMsg)
         }
         
-        const jsonAnalysis = JSON.parse(jsonText)
-        return this.analysisSchema.parse(jsonAnalysis)
-      } catch (parseError) {
-        throw new Error(`Failed to parse analysis response: ${parseError}`)
+        // If this was the primary model, try secondary; otherwise rethrow
+        if (model === primaryModel) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Gemini] Falling back to secondary model: ${secondaryModel}`)
+          }
+          continue
+        }
+        
+        // Secondary model also failed, throw error
+        throw error
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[Gemini] Analysis error with model ${model}:`, errorMsg)
-      }
-      throw error
     }
+
+    // Should never reach here, but TypeScript needs it
+    throw new Error('All models failed for analysis')
   }
 
   /**
    * Phase 2: Generate document using analysis context
+   * Uses PRIMARY_MODEL with SECONDARY_MODEL fallback on failure
    */
   async generateDocument(
     jobDescription: string,
@@ -153,74 +172,91 @@ export class CoverLetterGenerator {
       analysis,
       continueFrom
     )
-    const model = process.env.SECONDARY_MODEL || 'gemini-2.5-flash'
+    const primaryModel = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
+    const secondaryModel = process.env.SECONDARY_MODEL || 'gemini-2.5-flash'
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Gemini] Generation using model: ${model}`)
-    }
-
-    try {
-      // gemma models don't support systemInstruction, JSON mode, or responseSchema
-      const isGemmaModel = model.includes('gemma')
-      const config: any = {}
-      
-      // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
-      const finalPrompt = isGemmaModel
-        ? `${GENERATION_SYSTEM_PROMPT}\n\n---\n\n${generationPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "generatedDocument": "<string containing the full document>"\n}\n\nDo NOT include any markdown, explanations, or text outside the JSON object. The document content itself should be inside the generatedDocument string.`
-        : generationPrompt
-      
-      if (!isGemmaModel) {
-        config.systemInstruction = GENERATION_SYSTEM_PROMPT
-        config.responseMimeType = 'application/json'
-        config.responseSchema = GENERATION_ONLY_SCHEMA
+    // Try primary model first, fallback to secondary on error
+    for (const model of [primaryModel, secondaryModel]) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Gemini] Generation using model: ${model}`)
       }
 
-      const generationStream = await this.aiClient.models.generateContentStream({
-        model,
-        config,
-        contents: finalPrompt,
-      })
-
-      // Accumulate the generation response
-      let generationText = ''
-
-      for await (const chunk of generationStream) {
-        const chunkText = chunk.text
-        if (chunkText) {
-          generationText += chunkText
-        }
-      }
-
-      if (!generationText) {
-        throw new Error('Generation phase returned empty response')
-      }
-
-      // Parse generation response - extract JSON if wrapped in markdown
       try {
-        let jsonText = generationText.trim()
+        // gemma models don't support systemInstruction, JSON mode, or responseSchema
+        const isGemmaModel = model.includes('gemma')
+        const config: any = {}
         
-        // For gemma models, extract JSON from potential markdown code blocks
-        if (isGemmaModel) {
-          const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
-                           jsonText.match(/(\{[\s\S]*\})/)
-          if (jsonMatch) {
-            jsonText = jsonMatch[1]
+        // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
+        const finalPrompt = isGemmaModel
+          ? `${GENERATION_SYSTEM_PROMPT}\n\n---\n\n${generationPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "generatedDocument": "<string containing the full document>"\n}\n\nDo NOT include any markdown, explanations, or text outside the JSON object. The document content itself should be inside the generatedDocument string.`
+          : generationPrompt
+        
+        if (!isGemmaModel) {
+          config.systemInstruction = GENERATION_SYSTEM_PROMPT
+          config.responseMimeType = 'application/json'
+          config.responseSchema = GENERATION_ONLY_SCHEMA
+        }
+
+        const generationStream = await this.aiClient.models.generateContentStream({
+          model,
+          config,
+          contents: finalPrompt,
+        })
+
+        // Accumulate the generation response
+        let generationText = ''
+
+        for await (const chunk of generationStream) {
+          const chunkText = chunk.text
+          if (chunkText) {
+            generationText += chunkText
           }
         }
+
+        if (!generationText) {
+          throw new Error('Generation phase returned empty response')
+        }
+
+        // Parse generation response - extract JSON if wrapped in markdown
+        try {
+          let jsonText = generationText.trim()
+          
+          // For gemma models, extract JSON from potential markdown code blocks
+          if (isGemmaModel) {
+            const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
+                             jsonText.match(/(\{[\s\S]*\})/)
+            if (jsonMatch) {
+              jsonText = jsonMatch[1]
+            }
+          }
+          
+          const jsonGeneration = JSON.parse(jsonText)
+          const parsed = this.generationSchema.parse(jsonGeneration)
+          return parsed.generatedDocument
+        } catch (parseError) {
+          throw new Error(`Failed to parse generation response: ${parseError}`)
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`[Gemini] Generation error with model ${model}:`, errorMsg)
+        }
         
-        const jsonGeneration = JSON.parse(jsonText)
-        const parsed = this.generationSchema.parse(jsonGeneration)
-        return parsed.generatedDocument
-      } catch (parseError) {
-        throw new Error(`Failed to parse generation response: ${parseError}`)
+        // If this was the primary model, try secondary; otherwise rethrow
+        if (model === primaryModel) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[Gemini] Falling back to secondary model: ${secondaryModel}`)
+          }
+          continue
+        }
+        
+        // Secondary model also failed, throw error
+        throw error
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error)
-      if (process.env.NODE_ENV === 'development') {
-        console.error(`[Gemini] Generation error with model ${model}:`, errorMsg)
-      }
-      throw error
     }
+
+    // Should never reach here, but TypeScript needs it
+    throw new Error('All models failed for generation')
   }
 
   /**
