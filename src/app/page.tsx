@@ -257,7 +257,7 @@ export default function Home() {
       </header>
 
       <main className="py-6 sm:py-8">
-        {!coverLetter ? (
+        {!coverLetter && !matchAnalysis ? (
           <>
             <CoverLetterForm onGenerate={handleGenerate} isLoading={isLoading} statusMessage={statusMessage} />
 
