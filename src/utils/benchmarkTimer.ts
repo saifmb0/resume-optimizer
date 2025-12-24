@@ -17,12 +17,14 @@ export interface SSEBenchmark {
   firstResponseDisplayedAt: number
   lastResponseReceivedAt: number
   lastResponseDisplayedAt: number
+  analysisReceivedAt: number
   
   // Calculated metrics
   timeToFirstByte: number // TTFB - time until first byte received
   timeToFirstDisplay: number // Time until first chunk rendered
   totalStreamTime: number // Time until stream completes
   totalDisplayTime: number // Time until final render completes
+  timeToAnalysis: number // Time until analysis event received
   
   // Additional metrics
   chunkCount: number
@@ -53,6 +55,12 @@ export class BenchmarkTimer {
     }
   }
 
+  recordAnalysisReceived(): void {
+    if (this.metrics.analysisReceivedAt === undefined) {
+      this.metrics.analysisReceivedAt = performance.now() - this.startTime
+    }
+  }
+
   recordChunk(chunkSize: number): void {
     this.metrics.chunkCount = (this.metrics.chunkCount || 0) + 1
     this.metrics.totalDataSize = (this.metrics.totalDataSize || 0) + chunkSize
@@ -76,6 +84,7 @@ export class BenchmarkTimer {
       firstResponseDisplayedAt: this.metrics.firstResponseDisplayedAt || 0,
       lastResponseReceivedAt: this.metrics.lastResponseReceivedAt || 0,
       lastResponseDisplayedAt: this.metrics.lastResponseDisplayedAt || 0,
+      analysisReceivedAt: this.metrics.analysisReceivedAt || 0,
       chunkCount: this.metrics.chunkCount || 0,
       totalDataSize: this.metrics.totalDataSize || 0,
       averageChunkSize: (this.metrics.chunkCount || 0) > 0 
@@ -89,6 +98,7 @@ export class BenchmarkTimer {
       timeToFirstDisplay: metrics.firstResponseDisplayedAt,
       totalStreamTime: metrics.lastResponseReceivedAt,
       totalDisplayTime: metrics.lastResponseDisplayedAt,
+      timeToAnalysis: metrics.analysisReceivedAt,
     }
   }
 
