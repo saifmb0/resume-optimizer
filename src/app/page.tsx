@@ -32,6 +32,8 @@ export default function Home() {
   const [currentAppId, setCurrentAppId] = useState<string | null>(null)
   // Track benchmark metrics
   const [benchmarkMetrics, setBenchmarkMetrics] = useState<SSEBenchmark | null>(null)
+  // Track real-time status messages during generation
+  const [statusMessage, setStatusMessage] = useState<string>('')
 
   // Application history management
   const {
@@ -93,6 +95,7 @@ export default function Home() {
     setIsLoading(true)
     setFormData(data)
     setIncompleteText(null)
+    setStatusMessage('Starting...')
     
     // Start the timer BEFORE the network request
     const startTime = performance.now()
@@ -131,6 +134,7 @@ export default function Home() {
       // Handle SSE stream with robust parser
       let errorOccurred = false
       const result = await parseSSEStream(response, {
+        onStatus: (message) => setStatusMessage(message),
         onAnalysis: (data) => setMatchAnalysis(data),
         onChunk: (text) => setCoverLetter(continueFrom ? continueFrom + text : text),
         onDone: (letter) => setCoverLetter(continueFrom ? continueFrom + letter : letter),
@@ -164,6 +168,7 @@ export default function Home() {
       }
     } finally {
       setIsLoading(false)
+      setStatusMessage('')
     }
   }
 
@@ -252,7 +257,7 @@ export default function Home() {
       <main className="py-6 sm:py-8">
         {!coverLetter ? (
           <>
-            <CoverLetterForm onGenerate={handleGenerate} isLoading={isLoading} />
+            <CoverLetterForm onGenerate={handleGenerate} isLoading={isLoading} statusMessage={statusMessage} />
 
             {/* Features Section */}
             <div className="max-w-4xl mx-auto mt-12 sm:mt-16 px-4 sm:px-6">

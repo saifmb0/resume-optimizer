@@ -15,6 +15,7 @@ interface FormData {
 interface CoverLetterFormProps {
   onGenerate: (data: FormData) => void
   isLoading: boolean
+  statusMessage?: string
 }
 
 interface ValidationErrors {
@@ -29,7 +30,7 @@ const toneOptions = [
   { value: 'Wdywtwh', label: 'Why do you want to work here?' }
 ]
 
-export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFormProps) {
+export default function CoverLetterForm({ onGenerate, isLoading, statusMessage }: CoverLetterFormProps) {
   // Persist form data to localStorage to prevent data loss on refresh
   const [formData, setFormData, clearFormData] = usePersistedState<FormData>(
     'cv_draft',
@@ -307,7 +308,7 @@ export default function CoverLetterForm({ onGenerate, isLoading }: CoverLetterFo
                 {isLoading || isValidating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
-                    {isValidating ? 'Validating...' : 'Generating...'}
+                    {isValidating ? 'Validating...' : (statusMessage || 'Generating...')}
                   </>
                 ) : (
                   'Generate'

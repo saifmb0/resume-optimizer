@@ -11,6 +11,7 @@ export interface SSEEvent {
 }
 
 export interface SSECallbacks {
+  onStatus?: (message: string) => void // Called with status updates during processing
   onAnalysis?: (data: { score: number; reasoning: string; missingKeywords: string[] }) => void
   onChunk?: (text: string) => void
   onDone?: (coverLetter: string) => void
@@ -69,6 +70,10 @@ export async function parseSSEStream(
               // Just receiving this triggers 'recordFirstResponseReceived'
               // automatically via the check at the top of onEvent
               // No further action needed - this is just a connection acknowledgement
+              break
+            case 'status':
+              // Real-time status updates from the generator
+              callbacks.onStatus?.(data.message)
               break
             case 'analysis':
               benchmark.recordAnalysisReceived()

@@ -178,6 +178,12 @@ export class CoverLetterGenerator {
         },
       }
 
+      // Update status for generation phase
+      yield {
+        type: 'status',
+        data: { message: 'Writing your document...' },
+      }
+
       // Phase 2: Generation
       const generatedDocument = await this.generateDocument(
         input.jobDescription,
