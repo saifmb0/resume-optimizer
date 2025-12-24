@@ -42,6 +42,7 @@ export interface CoverLetterInput {
  * Streaming events emitted during generation
  */
 export type StreamEvent =
+  | { type: 'status'; data: { message: string } }
   | { type: 'analysis'; data: { score: number; reasoning: string; missingKeywords: string[] } }
   | { type: 'chunk'; data: { text: string } }
   | { type: 'done'; data: { coverLetter: string; generatedDocument: string } }
@@ -158,7 +159,13 @@ export class CoverLetterGenerator {
    */
   async *generateStream(input: CoverLetterInput): AsyncGenerator<StreamEvent> {
     try {
-      // Phase 1: Analysis
+      // Yield status immediately to show user progress
+      yield {
+        type: 'status',
+        data: { message: 'Analyzing job description and resume...' },
+      }
+
+      // Phase 1: Analysis (heavy processing)
       const analysis = await this.analyzeResume(input.jobDescription, input.resume)
 
       // Yield analysis result
