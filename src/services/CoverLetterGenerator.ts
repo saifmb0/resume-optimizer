@@ -86,6 +86,11 @@ export class CoverLetterGenerator {
       const isGemmaModel = model.includes('gemma')
       const config: any = {}
       
+      // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
+      const finalPrompt = isGemmaModel
+        ? `${ANALYSIS_SYSTEM_PROMPT}\n\n---\n\n${analysisPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "score": <number 0-100>,\n  "reasoning": "<string>",\n  "missingKeywords": ["<keyword1>", "<keyword2>"]\n}\n\nDo NOT include any markdown, explanations, or text outside the JSON object.`
+        : analysisPrompt
+      
       if (!isGemmaModel) {
         config.systemInstruction = ANALYSIS_SYSTEM_PROMPT
         config.responseMimeType = 'application/json'
@@ -95,7 +100,7 @@ export class CoverLetterGenerator {
       const analysisResponse = await this.aiClient.models.generateContent({
         model,
         config,
-        contents: analysisPrompt,
+        contents: finalPrompt,
       })
 
       const analysisText = analysisResponse.text
@@ -103,9 +108,20 @@ export class CoverLetterGenerator {
         throw new Error('Analysis phase returned empty response')
       }
 
-      // Parse and validate analysis
+      // Parse and validate analysis - extract JSON if wrapped in markdown
       try {
-        const jsonAnalysis = JSON.parse(analysisText)
+        let jsonText = analysisText.trim()
+        
+        // For gemma models, extract JSON from potential markdown code blocks
+        if (isGemmaModel) {
+          const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
+                           jsonText.match(/(\{[\s\S]*\})/)
+          if (jsonMatch) {
+            jsonText = jsonMatch[1]
+          }
+        }
+        
+        const jsonAnalysis = JSON.parse(jsonText)
         return this.analysisSchema.parse(jsonAnalysis)
       } catch (parseError) {
         throw new Error(`Failed to parse analysis response: ${parseError}`)
@@ -148,6 +164,11 @@ export class CoverLetterGenerator {
       const isGemmaModel = model.includes('gemma')
       const config: any = {}
       
+      // For gemma: prepend system instructions to user prompt + add explicit JSON formatting request
+      const finalPrompt = isGemmaModel
+        ? `${GENERATION_SYSTEM_PROMPT}\n\n---\n\n${generationPrompt}\n\nIMPORTANT: You MUST respond with ONLY valid JSON in this exact format:\n{\n  "generatedDocument": "<string containing the full document>"\n}\n\nDo NOT include any markdown, explanations, or text outside the JSON object. The document content itself should be inside the generatedDocument string.`
+        : generationPrompt
+      
       if (!isGemmaModel) {
         config.systemInstruction = GENERATION_SYSTEM_PROMPT
         config.responseMimeType = 'application/json'
@@ -157,7 +178,7 @@ export class CoverLetterGenerator {
       const generationStream = await this.aiClient.models.generateContentStream({
         model,
         config,
-        contents: generationPrompt,
+        contents: finalPrompt,
       })
 
       // Accumulate the generation response
@@ -174,9 +195,20 @@ export class CoverLetterGenerator {
         throw new Error('Generation phase returned empty response')
       }
 
-      // Parse generation response
+      // Parse generation response - extract JSON if wrapped in markdown
       try {
-        const jsonGeneration = JSON.parse(generationText)
+        let jsonText = generationText.trim()
+        
+        // For gemma models, extract JSON from potential markdown code blocks
+        if (isGemmaModel) {
+          const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
+                           jsonText.match(/(\{[\s\S]*\})/)
+          if (jsonMatch) {
+            jsonText = jsonMatch[1]
+          }
+        }
+        
+        const jsonGeneration = JSON.parse(jsonText)
         const parsed = this.generationSchema.parse(jsonGeneration)
         return parsed.generatedDocument
       } catch (parseError) {
