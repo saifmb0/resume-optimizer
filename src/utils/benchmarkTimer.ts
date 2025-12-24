@@ -121,7 +121,8 @@ export class BenchmarkTimer {
     return `
 ===== SSE BENCHMARK REPORT =====
 ⏱️  Time to First Byte (TTFB):     ${formatTime(benchmark.timeToFirstByte)}
-📊 Time to First Display:         ${formatTime(benchmark.timeToFirstDisplay)}
+� Time to Analysis:              ${formatTime(benchmark.timeToAnalysis)}
+�📊 Time to First Display:         ${formatTime(benchmark.timeToFirstDisplay)}
 ⏳ Time to Last Byte:             ${formatTime(benchmark.totalStreamTime)}
 ✅ Total Display Time:            ${formatTime(benchmark.totalDisplayTime)}
 📈 Chunks Received:               ${benchmark.chunkCount}
