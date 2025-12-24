@@ -313,7 +313,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               Performance Metrics
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Time to First Byte */}
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-purple-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time to First Byte</div>
@@ -324,6 +324,18 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                   }
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Initial response time</div>
+              </div>
+
+              {/* Time to Analysis */}
+              <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-indigo-100 dark:border-zinc-600">
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time to Analysis</div>
+                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {benchmarkMetrics.timeToAnalysis < 1000 
+                    ? `${benchmarkMetrics.timeToAnalysis.toFixed(0)}ms`
+                    : `${(benchmarkMetrics.timeToAnalysis / 1000).toFixed(2)}s`
+                  }
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Analysis score ready</div>
               </div>
 
               {/* Time to First Display */}
