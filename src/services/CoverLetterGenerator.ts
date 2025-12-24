@@ -82,15 +82,14 @@ export class CoverLetterGenerator {
     }
 
     try {
-      // gemma models don't support systemInstruction, so conditionally include it
-      const supportsSystemInstruction = !model.includes('gemma')
-      const config: any = {
-        responseMimeType: 'application/json',
-        responseSchema: ANALYSIS_ONLY_SCHEMA,
-      }
+      // gemma models don't support systemInstruction, JSON mode, or responseSchema
+      const isGemmaModel = model.includes('gemma')
+      const config: any = {}
       
-      if (supportsSystemInstruction) {
+      if (!isGemmaModel) {
         config.systemInstruction = ANALYSIS_SYSTEM_PROMPT
+        config.responseMimeType = 'application/json'
+        config.responseSchema = ANALYSIS_ONLY_SCHEMA
       }
 
       const analysisResponse = await this.aiClient.models.generateContent({
@@ -145,15 +144,14 @@ export class CoverLetterGenerator {
     }
 
     try {
-      // gemma models don't support systemInstruction, so conditionally include it
-      const supportsSystemInstruction = !model.includes('gemma')
-      const config: any = {
-        responseMimeType: 'application/json',
-        responseSchema: GENERATION_ONLY_SCHEMA,
-      }
+      // gemma models don't support systemInstruction, JSON mode, or responseSchema
+      const isGemmaModel = model.includes('gemma')
+      const config: any = {}
       
-      if (supportsSystemInstruction) {
+      if (!isGemmaModel) {
         config.systemInstruction = GENERATION_SYSTEM_PROMPT
+        config.responseMimeType = 'application/json'
+        config.responseSchema = GENERATION_ONLY_SCHEMA
       }
 
       const generationStream = await this.aiClient.models.generateContentStream({
