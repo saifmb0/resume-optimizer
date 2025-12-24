@@ -7,9 +7,9 @@ import { z } from 'zod'
 
 // Input validation schema
 const optimizeResumeSchema = z.object({
-  resume: z.string().min(50, 'Resume must be at least 50 characters').max(15000, 'Resume too long'),
+  resume: z.string().min(10, 'Resume must be at least 10 characters').max(15000, 'Resume too long'),
   missingKeywords: z.array(z.string()).min(1, 'At least one keyword required').max(20, 'Too many keywords'),
-  jobDescription: z.string().min(50, 'Job description must be at least 50 characters').max(10000, 'Job description too long'),
+  jobDescription: z.string().min(10, 'Job description must be at least 10 characters').max(10000, 'Job description too long'),
 })
 
 export async function POST(request: NextRequest) {
