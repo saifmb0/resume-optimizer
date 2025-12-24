@@ -96,6 +96,12 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   // Debounced content for PDF generation - prevents re-renders while typing
   const [debouncedContent, setDebouncedContent] = useState(coverLetter)
 
+  // Check if we are in dev or preview (not production)
+  const showBenchmarks = 
+    process.env.NODE_ENV === 'development' || 
+    process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' ||
+    process.env.NEXT_PUBLIC_VERCEL_ENV === 'development'
+
   // Sync editedContent when coverLetter prop changes (e.g., regeneration)
   useEffect(() => {
     setEditedContent(coverLetter)
@@ -305,8 +311,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           </div>
         )}
 
-        {/* Performance Benchmark Display */}
-        {benchmarkMetrics && (
+        {/* Performance Benchmark Display - Only in Dev/Preview */}
+        {showBenchmarks && benchmarkMetrics && (
           <div className="mb-6 p-4 sm:p-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-zinc-800 dark:to-zinc-800 rounded-lg border border-purple-200 dark:border-zinc-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
               <SparklesIcon className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
