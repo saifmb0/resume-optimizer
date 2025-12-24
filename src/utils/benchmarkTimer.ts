@@ -39,8 +39,9 @@ export class BenchmarkTimer {
     totalDataSize: 0,
   }
 
-  constructor() {
-    this.startTime = performance.now()
+  // Allow passing a specific start time (e.g., from before the fetch request)
+  constructor(manualStartTime?: number) {
+    this.startTime = manualStartTime ?? performance.now()
   }
 
   recordFirstResponseReceived(): void {
