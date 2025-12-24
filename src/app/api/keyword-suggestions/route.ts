@@ -108,11 +108,17 @@ ${sanitizedResume}
 
 Provide 2-4 specific suggestions for how to naturally and truthfully incorporate "${sanitizedKeyword}" into this resume.`
 
+    const model = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Gemini] Keyword suggestions using model: ${model}`)
+    }
+
     const response = await ai.models.generateContent({
-      model: process.env.PRIMARY_MODEL || "gemini-2.0-flash",
+      model,
       config: {
         systemInstruction,
-        responseMimeType: "application/json",
+        responseMimeType: 'application/json',
         responseSchema: SUGGESTION_SCHEMA,
       },
       contents: userPrompt,

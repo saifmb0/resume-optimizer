@@ -75,28 +75,41 @@ export class CoverLetterGenerator {
    */
   async analyzeResume(jobDescription: string, resume: string): Promise<AnalysisResult> {
     const analysisPrompt = constructAnalysisPrompt(jobDescription, resume)
+    const model = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
 
-    const analysisResponse = await this.aiClient.models.generateContent({
-      model: process.env.PRIMARY_MODEL || 'gemini-2.0-flash',
-      config: {
-        systemInstruction: ANALYSIS_SYSTEM_PROMPT,
-        responseMimeType: 'application/json',
-        responseSchema: ANALYSIS_ONLY_SCHEMA,
-      },
-      contents: analysisPrompt,
-    })
-
-    const analysisText = analysisResponse.text
-    if (!analysisText) {
-      throw new Error('Analysis phase returned empty response')
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Gemini] Analysis using model: ${model}`)
     }
 
-    // Parse and validate analysis
     try {
-      const jsonAnalysis = JSON.parse(analysisText)
-      return this.analysisSchema.parse(jsonAnalysis)
-    } catch (parseError) {
-      throw new Error(`Failed to parse analysis response: ${parseError}`)
+      const analysisResponse = await this.aiClient.models.generateContent({
+        model,
+        config: {
+          systemInstruction: ANALYSIS_SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+          responseSchema: ANALYSIS_ONLY_SCHEMA,
+        },
+        contents: analysisPrompt,
+      })
+
+      const analysisText = analysisResponse.text
+      if (!analysisText) {
+        throw new Error('Analysis phase returned empty response')
+      }
+
+      // Parse and validate analysis
+      try {
+        const jsonAnalysis = JSON.parse(analysisText)
+        return this.analysisSchema.parse(jsonAnalysis)
+      } catch (parseError) {
+        throw new Error(`Failed to parse analysis response: ${parseError}`)
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Gemini] Analysis error with model ${model}:`, errorMsg)
+      }
+      throw error
     }
   }
 
@@ -118,38 +131,51 @@ export class CoverLetterGenerator {
       analysis,
       continueFrom
     )
+    const model = process.env.SECONDARY_MODEL || 'gemini-2.5-flash'
 
-    const generationStream = await this.aiClient.models.generateContentStream({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: GENERATION_SYSTEM_PROMPT,
-        responseMimeType: 'application/json',
-        responseSchema: GENERATION_ONLY_SCHEMA,
-      },
-      contents: generationPrompt,
-    })
-
-    // Accumulate the generation response
-    let generationText = ''
-
-    for await (const chunk of generationStream) {
-      const chunkText = chunk.text
-      if (chunkText) {
-        generationText += chunkText
-      }
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Gemini] Generation using model: ${model}`)
     }
 
-    if (!generationText) {
-      throw new Error('Generation phase returned empty response')
-    }
-
-    // Parse generation response
     try {
-      const jsonGeneration = JSON.parse(generationText)
-      const parsed = this.generationSchema.parse(jsonGeneration)
-      return parsed.generatedDocument
-    } catch (parseError) {
-      throw new Error(`Failed to parse generation response: ${parseError}`)
+      const generationStream = await this.aiClient.models.generateContentStream({
+        model,
+        config: {
+          systemInstruction: GENERATION_SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+          responseSchema: GENERATION_ONLY_SCHEMA,
+        },
+        contents: generationPrompt,
+      })
+
+      // Accumulate the generation response
+      let generationText = ''
+
+      for await (const chunk of generationStream) {
+        const chunkText = chunk.text
+        if (chunkText) {
+          generationText += chunkText
+        }
+      }
+
+      if (!generationText) {
+        throw new Error('Generation phase returned empty response')
+      }
+
+      // Parse generation response
+      try {
+        const jsonGeneration = JSON.parse(generationText)
+        const parsed = this.generationSchema.parse(jsonGeneration)
+        return parsed.generatedDocument
+      } catch (parseError) {
+        throw new Error(`Failed to parse generation response: ${parseError}`)
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`[Gemini] Generation error with model ${model}:`, errorMsg)
+      }
+      throw error
     }
   }
 
@@ -159,6 +185,11 @@ export class CoverLetterGenerator {
    */
   async *generateStream(input: CoverLetterInput): AsyncGenerator<StreamEvent> {
     try {
+      const isDev = process.env.NODE_ENV === 'development'
+      const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const analysisTimerId = `Gemini:Analysis-${requestId}`
+      const generationTimerId = `Gemini:Generation-${requestId}`
+
       // Yield status immediately to show user progress
       yield {
         type: 'status',
@@ -166,10 +197,9 @@ export class CoverLetterGenerator {
       }
 
       // Phase 1: Analysis (heavy processing)
-      const isDev = process.env.NODE_ENV === 'development'
-      if (isDev) console.time('Gemini:Analysis')
+      if (isDev) console.time(analysisTimerId)
       const analysis = await this.analyzeResume(input.jobDescription, input.resume)
-      if (isDev) console.timeEnd('Gemini:Analysis')
+      if (isDev) console.timeEnd(analysisTimerId)
 
       // Yield analysis result
       yield {
@@ -188,7 +218,7 @@ export class CoverLetterGenerator {
       }
 
       // Phase 2: Generation
-      if (isDev) console.time('Gemini:Generation')
+      if (isDev) console.time(generationTimerId)
       const generatedDocument = await this.generateDocument(
         input.jobDescription,
         input.resume,
@@ -196,7 +226,7 @@ export class CoverLetterGenerator {
         analysis,
         input.continueFrom
       )
-      if (isDev) console.timeEnd('Gemini:Generation')
+      if (isDev) console.timeEnd(generationTimerId)
 
       // Validate output quality
       if (generatedDocument.length < 50) {

@@ -114,8 +114,14 @@ ${sanitizedResume}
 
 Generate personalized interview questions based on this specific match.`
 
+    const model = process.env.SECONDARY_MODEL || 'gemini-2.0-flash'
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Gemini] Interview questions using model: ${model}`)
+    }
+
     const response = await ai.models.generateContent({
-      model: process.env.SECONDARY_MODEL || "gemini-2.0-flash",
+      model,
       config: {
         systemInstruction,
         responseMimeType: "application/json",

@@ -92,8 +92,14 @@ ${sanitizedKeywords.join(', ')}
 
 Return the optimized resume with these keywords naturally woven into existing content where appropriate.`
 
+    const model = process.env.PRIMARY_MODEL || 'gemini-2.0-flash'
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Gemini] Resume optimization using model: ${model}`)
+    }
+
     const response = await ai.models.generateContent({
-      model: process.env.PRIMARY_MODEL || "gemini-2.0-flash",
+      model,
       config: {
         systemInstruction,
       },

@@ -124,6 +124,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Gemini] API configuration:', {
+        primaryModel: process.env.PRIMARY_MODEL || 'gemini-2.0-flash',
+        secondaryModel: process.env.SECONDARY_MODEL || 'gemini-2.5-flash',
+        apiKeyExists: !!apiKey,
+      })
+    }
+
     // Create service with dependency injection
     const generator = createCoverLetterGenerator(apiKey)
 
