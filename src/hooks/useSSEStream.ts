@@ -64,12 +64,18 @@ export async function parseSSEStream(
           
           switch (eventType) {
             case 'analysis':
+              benchmark.recordAnalysisReceived()
+              // Record analysis as first meaningful paint interaction
+              if (!firstChunkDisplayed) {
+                benchmark.recordFirstResponseDisplayed()
+                firstChunkDisplayed = true
+              }
               callbacks.onAnalysis?.(data)
               break
             case 'chunk':
               documentText += data.text
               benchmark.recordChunk(data.text?.length || 0)
-              // Record first display when first chunk arrives
+              // Record first display when first chunk arrives (if not already set by analysis)
               if (!firstChunkDisplayed && documentText.length > 0) {
                 benchmark.recordFirstResponseDisplayed()
                 firstChunkDisplayed = true
