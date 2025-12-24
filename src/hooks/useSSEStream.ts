@@ -34,14 +34,16 @@ export interface SSEResult {
  */
 export async function parseSSEStream(
   response: Response,
-  callbacks: SSECallbacks
+  callbacks: SSECallbacks,
+  startTime?: number
 ): Promise<SSEResult> {
   const reader = response.body?.getReader()
   if (!reader) {
     throw new Error('No response body')
   }
 
-  const benchmark = new BenchmarkTimer()
+  // Pass the startTime (or undefined) to the timer
+  const benchmark = new BenchmarkTimer(startTime)
   const decoder = new TextDecoder()
   let documentText = ''
   let streamCompleted = false
