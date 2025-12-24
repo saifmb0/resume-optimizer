@@ -65,6 +65,11 @@ export async function parseSSEStream(
           const data = JSON.parse(event.data)
           
           switch (eventType) {
+            case 'ping':
+              // Just receiving this triggers 'recordFirstResponseReceived'
+              // automatically via the check at the top of onEvent
+              // No further action needed - this is just a connection acknowledgement
+              break
             case 'analysis':
               benchmark.recordAnalysisReceived()
               // Record analysis as first meaningful paint interaction
