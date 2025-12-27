@@ -62,10 +62,10 @@ export const THEMES: ThemeConfig[] = [
 // Modern Theme - Clean sans-serif with blue accents
 const modernStyles = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 30,
     fontFamily: 'Open Sans',
-    fontSize: 10,
-    lineHeight: 1.4,
+    fontSize: 9,
+    lineHeight: 1.3,
     color: '#1f2937',
   },
   name: {
@@ -82,25 +82,25 @@ const modernStyles = StyleSheet.create({
     color: '#4b5563',
   },
   sectionHeader: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginTop: 18,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 4,
     borderBottomWidth: 2,
     borderBottomColor: '#2563eb',
-    paddingBottom: 4,
+    paddingBottom: 3,
     color: '#1f2937',
   },
   paragraph: {
-    fontSize: 10,
-    marginBottom: 6,
+    fontSize: 9,
+    marginBottom: 3,
     textAlign: 'justify',
     color: '#374151',
   },
   bulletPoint: {
     flexDirection: 'row',
-    marginBottom: 4,
-    marginLeft: 12,
+    marginBottom: 2,
+    marginLeft: 10,
   },
   bullet: {
     width: 10,
