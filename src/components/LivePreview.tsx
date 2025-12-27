@@ -10,39 +10,61 @@ interface LivePreviewProps {
 }
 
 export default function LivePreview({ content }: LivePreviewProps) {
+  let isFirstNonEmpty = true
+  
   return (
-    <div className="bg-white rounded shadow-lg p-6 sm:p-8 max-h-[600px] lg:max-h-[800px] overflow-y-auto">
-      {/* Paper-like styling to match PDF output */}
-      <div className="font-serif text-gray-900 text-sm leading-relaxed space-y-2">
+    <div className="bg-white rounded shadow-lg p-4 sm:p-6 max-h-[600px] lg:max-h-[800px] overflow-y-auto">
+      {/* Paper-like styling to match PDF output - compact for one-page fit */}
+      <div className="font-serif text-gray-900 text-sm leading-tight space-y-1">
         {content.split('\n').map((line, index) => {
           const trimmed = line.trim()
           
           if (trimmed === '') {
-            return <div key={index} className="h-2"></div>
+            return <div key={index} className="h-1"></div>
           }
           
-          // Bold headers (name, section headers)
-          if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-            const text = trimmed.replace(/\*\*/g, '')
-            if (index === 0) {
-              // Name at the top
+          // Standard markdown headers (### or ##)
+          if (trimmed.startsWith('#')) {
+            const text = trimmed.replace(/^#+\s*/, '')
+            if (isFirstNonEmpty) {
+              isFirstNonEmpty = false
               return (
-                <h1 key={index} className="text-xl font-bold text-center text-gray-900 font-sans">
+                <h1 key={index} className="text-lg font-bold text-center text-gray-900 font-sans">
                   {text}
                 </h1>
               )
             } else {
-              // Section headers
               return (
-                <h2 key={index} className="text-sm font-bold text-gray-900 uppercase tracking-wide mt-4 mb-1 border-b border-gray-300 pb-0.5 font-sans">
+                <h2 key={index} className="text-xs font-bold text-gray-900 uppercase tracking-wide mt-3 mb-0.5 border-b border-gray-300 pb-0.5 font-sans">
                   {text}
                 </h2>
               )
             }
           }
           
+          // Bold headers (legacy format)
+          if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+            const text = trimmed.replace(/\*\*/g, '')
+            if (isFirstNonEmpty) {
+              isFirstNonEmpty = false
+              return (
+                <h1 key={index} className="text-lg font-bold text-center text-gray-900 font-sans">
+                  {text}
+                </h1>
+              )
+            } else {
+              return (
+                <h2 key={index} className="text-xs font-bold text-gray-900 uppercase tracking-wide mt-3 mb-0.5 border-b border-gray-300 pb-0.5 font-sans">
+                  {text}
+                </h2>
+              )
+            }
+          }
+          
+          isFirstNonEmpty = false
+          
           // Contact info with pipes
-          if (trimmed.includes('|') && index < 5) {
+          if (trimmed.includes('|') && !trimmed.startsWith('*') && !trimmed.startsWith('-')) {
             return (
               <p key={index} className="text-center text-gray-600 text-xs">
                 {trimmed.split('|').map((part, i) => (
@@ -55,11 +77,11 @@ export default function LivePreview({ content }: LivePreviewProps) {
             )
           }
           
-          // Bullet points
-          if (trimmed.startsWith('*   ')) {
-            const bulletText = trimmed.replace('*   ', '')
+          // Bullet points: standard markdown (- ) or legacy (*   )
+          if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('*   ')) {
+            const bulletText = trimmed.replace(/^[-*]\s+/, '')
             return (
-              <li key={index} className="ml-4 text-gray-700 text-xs list-disc">
+              <li key={index} className="ml-3 text-gray-700 text-xs list-disc leading-snug">
                 {bulletText.split('**').map((part, i) => {
                   if (i % 2 === 1) {
                     return <strong key={i} className="font-semibold">{part}</strong>
