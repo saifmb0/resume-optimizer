@@ -76,9 +76,15 @@ CRITICAL RULES:
 - Maintain the original structure and format of the resume
 - Keep the same truthful information, just optimized for ATS
 - If a keyword cannot be naturally incorporated without lying, skip it
-- Preserve all markdown formatting from the original
 
-OUTPUT: Return ONLY the optimized resume text with markdown formatting. No explanations or commentary.`
+LAYOUT CONSTRAINTS:
+- Strictly ensure the generated content fits on a single A4 page. Be concise. Avoid fluff.
+- Use standard Markdown formatting: use '### Section Name' for section headers and '- ' for bullet points.
+- Do NOT use double asterisks (**) for section headers.
+- Do NOT add excessive newlines between bullet points or sections.
+- Keep bullet points brief and impactful (1-2 lines each).
+
+OUTPUT: Return ONLY the optimized resume text with standard markdown formatting. No explanations or commentary.`
 
     const userPrompt = `Here is the resume to optimize:
 
