@@ -16,6 +16,8 @@ function parseContent(content: string) {
     parts?: Array<{ text: string; bold: boolean }>
   }> = []
 
+  let isFirstNonEmpty = true
+
   lines.forEach((line, index) => {
     const trimmed = line.trim()
 
@@ -24,27 +26,42 @@ function parseContent(content: string) {
       return
     }
 
-    // Bold headers (name, section headers)
-    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
-      const text = trimmed.replace(/\*\*/g, '')
-      if (index === 0) {
+    // Standard markdown headers (### or ##) - treat as section headers
+    if (trimmed.startsWith('#')) {
+      const text = trimmed.replace(/^#+\s*/, '') // Strip all leading # and whitespace
+      if (isFirstNonEmpty) {
         elements.push({ type: 'name', text })
       } else {
         elements.push({ type: 'section', text })
       }
+      isFirstNonEmpty = false
       return
     }
 
+    // Bold headers (name, section headers) - legacy format
+    if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+      const text = trimmed.replace(/\*\*/g, '')
+      if (isFirstNonEmpty) {
+        elements.push({ type: 'name', text })
+      } else {
+        elements.push({ type: 'section', text })
+      }
+      isFirstNonEmpty = false
+      return
+    }
+
+    isFirstNonEmpty = false
+
     // Contact info with pipes
-    if (trimmed.includes('|') && !trimmed.startsWith('*')) {
+    if (trimmed.includes('|') && !trimmed.startsWith('*') && !trimmed.startsWith('-')) {
       const text = trimmed.split('|').map(p => p.trim()).join(' • ')
       elements.push({ type: 'contact', text })
       return
     }
 
-    // Bullet points
-    if (trimmed.startsWith('*   ')) {
-      const bulletText = trimmed.replace('*   ', '')
+    // Bullet points: standard markdown (- ) or legacy (*   )
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('*   ')) {
+      const bulletText = trimmed.replace(/^[-*]\s+/, '') // Strip - or * and following whitespace
       // Handle bold in bullets
       if (bulletText.includes('**')) {
         const parts = parseMixedBold(bulletText)
@@ -155,8 +172,19 @@ export function CvDocument({ content, theme = 'modern' }: CvDocumentProps) {
             case 'paragraph':
               return <Text key={index} style={styles.paragraph}>{element.text}</Text>
             
-            case 'empty':
-              return <View key={index} style={{ height: 4 }} />
+            case 'empty': {
+              // Prevent double gaps after section headers or name, and skip trailing empty
+              const prevElement = elements[index - 1]
+              const nextElement = elements[index + 1]
+              if (prevElement?.type === 'section' || prevElement?.type === 'name') {
+                return null
+              }
+              // Skip empty view at the end of document
+              if (!nextElement) {
+                return null
+              }
+              return <View key={index} style={{ height: 2 }} />
+            }
             
             default:
               return null
