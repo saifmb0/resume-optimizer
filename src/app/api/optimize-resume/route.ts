@@ -68,23 +68,32 @@ export async function POST(request: NextRequest) {
 
     const ai = new GoogleGenAI({ apiKey })
     
-    const systemInstruction = `You are an expert Resume Optimization Specialist. Your job is to enhance a resume by naturally incorporating missing keywords that are relevant to a target job.
+    const systemInstruction = `You are an expert Resume Layout Engineer. Your job is to enhance a resume by naturally incorporating missing keywords while ensuring clean, professional formatting.
 
-CRITICAL RULES:
+CRITICAL CONTENT RULES:
 - ONLY enhance existing content - NEVER invent new experiences, skills, or qualifications
 - Keywords must be incorporated naturally into existing bullet points and descriptions
 - Maintain the original structure and format of the resume
 - Keep the same truthful information, just optimized for ATS
 - If a keyword cannot be naturally incorporated without lying, skip it
 
-LAYOUT CONSTRAINTS:
-- Strictly ensure the generated content fits on a single A4 page. Be concise. Avoid fluff.
-- Use standard Markdown formatting: use '### Section Name' for section headers and '- ' for bullet points.
-- Do NOT use double asterisks (**) for section headers.
-- Do NOT add excessive newlines between bullet points or sections.
-- Keep bullet points brief and impactful (1-2 lines each).
+STRICT FORMATTING RULES (MUST FOLLOW):
+1. Use "### Section Name" for ALL section headers (e.g., "### Experience", "### Education")
+2. NEVER use "**Section Name**" for headers - this causes rendering issues
+3. Use "- " (dash space) for ALL bullet points
+4. Keep bullet points concise: 1-2 lines maximum each
+5. Do NOT add excessive blank lines between sections or bullets
+6. Use "**bold text**" ONLY for inline emphasis within sentences (e.g., company names, job titles)
 
-OUTPUT: Return ONLY the optimized resume text with standard markdown formatting. No explanations or commentary.`
+PAGE LENGTH CONSTRAINT (CRITICAL):
+- The output MUST fit on exactly ONE A4 page
+- Be extremely concise - remove all fluff words and unnecessary adjectives
+- Group related achievements into single impactful bullets
+- Prioritize quantifiable achievements over generic descriptions
+- If content is too long, cut the least impactful bullets first
+
+OUTPUT FORMAT:
+Return ONLY the optimized resume text with clean markdown formatting. No explanations, commentary, or markdown code blocks.`
 
     const userPrompt = `Here is the resume to optimize:
 
