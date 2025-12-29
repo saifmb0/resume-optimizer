@@ -59,211 +59,223 @@ export const THEMES: ThemeConfig[] = [
   },
 ]
 
-// Modern Theme - Clean sans-serif with blue accents
+// Modern Theme - Clean sans-serif with blue accents (compact for one-page fit)
 const modernStyles = StyleSheet.create({
   page: {
     padding: 30,
     fontFamily: 'Open Sans',
     fontSize: 9,
-    lineHeight: 1.3,
+    lineHeight: 1.25,
     color: '#1f2937',
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#2563eb',
-  },
-  contactInfo: {
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 16,
-    color: '#4b5563',
-  },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 4,
-    borderBottomWidth: 2,
-    borderBottomColor: '#2563eb',
-    paddingBottom: 3,
-    color: '#1f2937',
-  },
-  paragraph: {
-    fontSize: 9,
-    marginBottom: 3,
-    textAlign: 'justify',
-    color: '#374151',
-  },
-  bulletPoint: {
-    flexDirection: 'row',
-    marginBottom: 2,
-    marginLeft: 10,
-  },
-  bullet: {
-    width: 10,
-    fontSize: 10,
-    color: '#2563eb',
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 10,
-    color: '#374151',
-  },
-  jobTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginTop: 10,
-    marginBottom: 3,
-    color: '#1f2937',
-  },
-  inlineText: {
-    fontSize: 10,
-  },
-  boldText: {
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-})
-
-// Classic Theme - Elegant serif with traditional styling
-const classicStyles = StyleSheet.create({
-  page: {
-    padding: 50,
-    fontFamily: 'Lora',
-    fontSize: 11,
-    lineHeight: 1.5,
-    color: '#000000',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 6,
-    color: '#1f2937',
-    letterSpacing: 1,
-  },
-  contactInfo: {
-    fontSize: 10,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#4b5563',
-  },
-  sectionHeader: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f2937',
-    paddingBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  paragraph: {
-    fontSize: 11,
-    marginBottom: 8,
-    textAlign: 'justify',
-    color: '#1f2937',
-  },
-  bulletPoint: {
-    flexDirection: 'row',
-    marginBottom: 5,
-    marginLeft: 16,
-  },
-  bullet: {
-    width: 12,
-    fontSize: 11,
-  },
-  bulletText: {
-    flex: 1,
-    fontSize: 11,
-    color: '#1f2937',
-  },
-  jobTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 4,
-    fontStyle: 'italic',
-  },
-  inlineText: {
-    fontSize: 11,
-  },
-  boldText: {
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-})
-
-// Minimal Theme - Ultra-clean, lots of whitespace
-const minimalStyles = StyleSheet.create({
-  page: {
-    padding: 45,
-    fontFamily: 'Roboto',
-    fontSize: 10,
-    lineHeight: 1.6,
-    color: '#374151',
   },
   name: {
     fontSize: 20,
     fontWeight: 'bold',
-    textAlign: 'left',
+    textAlign: 'center',
     marginBottom: 4,
-    color: '#111827',
+    color: '#2563eb',
   },
   contactInfo: {
     fontSize: 9,
-    textAlign: 'left',
-    marginBottom: 24,
-    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#4b5563',
   },
   sectionHeader: {
     fontSize: 11,
     fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 10,
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    marginTop: 10,
+    marginBottom: 3,
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#2563eb',
+    paddingBottom: 2,
+    color: '#1f2937',
   },
   paragraph: {
-    fontSize: 10,
-    marginBottom: 8,
+    fontSize: 9,
+    marginBottom: 2,
+    textAlign: 'justify',
     color: '#374151',
+  },
+  bulletList: {
+    marginBottom: 2,
   },
   bulletPoint: {
     flexDirection: 'row',
-    marginBottom: 4,
+    marginBottom: 1,
     marginLeft: 8,
+    alignItems: 'flex-start',
   },
   bullet: {
     width: 8,
-    fontSize: 10,
-    color: '#9ca3af',
+    fontSize: 9,
+    color: '#2563eb',
   },
   bulletText: {
     flex: 1,
-    fontSize: 10,
+    fontSize: 9,
     color: '#374151',
   },
   jobTitle: {
     fontSize: 10,
     fontWeight: 'bold',
-    marginTop: 12,
+    marginTop: 6,
+    marginBottom: 2,
+    color: '#1f2937',
+  },
+  inlineText: {
+    fontSize: 9,
+  },
+  boldText: {
+    fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+})
+
+// Classic Theme - Elegant serif with traditional styling (compact for one-page fit)
+const classicStyles = StyleSheet.create({
+  page: {
+    padding: 30,
+    fontFamily: 'Lora',
+    fontSize: 9.5,
+    lineHeight: 1.3,
+    color: '#000000',
+  },
+  name: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
     marginBottom: 4,
+    color: '#1f2937',
+    letterSpacing: 0.5,
+  },
+  contactInfo: {
+    fontSize: 9,
+    textAlign: 'center',
+    marginBottom: 12,
+    color: '#4b5563',
+  },
+  sectionHeader: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2937',
+    paddingBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  paragraph: {
+    fontSize: 9.5,
+    marginBottom: 2,
+    textAlign: 'justify',
+    color: '#1f2937',
+  },
+  bulletList: {
+    marginBottom: 2,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 1,
+    marginLeft: 10,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    width: 10,
+    fontSize: 9.5,
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 9.5,
+    color: '#1f2937',
+  },
+  jobTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 6,
+    marginBottom: 2,
+    fontStyle: 'italic',
+  },
+  inlineText: {
+    fontSize: 9.5,
+  },
+  boldText: {
+    fontWeight: 'bold',
+  },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+})
+
+// Minimal Theme - Ultra-clean design (compact for one-page fit)
+const minimalStyles = StyleSheet.create({
+  page: {
+    padding: 30,
+    fontFamily: 'Roboto',
+    fontSize: 9,
+    lineHeight: 1.3,
+    color: '#374151',
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'left',
+    marginBottom: 3,
+    color: '#111827',
+  },
+  contactInfo: {
+    fontSize: 8,
+    textAlign: 'left',
+    marginBottom: 12,
+    color: '#6b7280',
+  },
+  sectionHeader: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 4,
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  paragraph: {
+    fontSize: 9,
+    marginBottom: 2,
+    color: '#374151',
+  },
+  bulletList: {
+    marginBottom: 2,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 1,
+    marginLeft: 6,
+    alignItems: 'flex-start',
+  },
+  bullet: {
+    width: 6,
+    fontSize: 9,
+    color: '#9ca3af',
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 9,
+    color: '#374151',
+  },
+  jobTitle: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    marginTop: 6,
+    marginBottom: 2,
     color: '#111827',
   },
   inlineText: {
-    fontSize: 10,
+    fontSize: 9,
   },
   boldText: {
     fontWeight: 'bold',
