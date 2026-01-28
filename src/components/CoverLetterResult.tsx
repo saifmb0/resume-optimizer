@@ -33,6 +33,9 @@ interface CoverLetterResultProps {
     tone: string
   }
   benchmarkMetrics?: SSEBenchmark
+  // Hybrid inference props
+  processingMode?: 'edge' | 'cloud'
+  optimizeProgress?: string
 }
 
 // ATS Score Gauge Component
@@ -40,15 +43,15 @@ function ATSScoreGauge({ score }: { score: number }) {
   const radius = 45
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (score / 100) * circumference
-  
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return { stroke: '#22c55e', text: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' }
     if (score >= 60) return { stroke: '#eab308', text: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' }
     return { stroke: '#ef4444', text: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' }
   }
-  
+
   const colors = getScoreColor(score)
-  
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-28 h-28">
@@ -86,7 +89,7 @@ function ATSScoreGauge({ score }: { score: number }) {
   )
 }
 
-export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, onContinue, isLoading, isOptimizing, isIncomplete, formData, benchmarkMetrics }: CoverLetterResultProps) {
+export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, onContinue, isLoading, isOptimizing, isIncomplete, formData, benchmarkMetrics, processingMode, optimizeProgress }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [useRawEditor, setUseRawEditor] = useState(false) // Toggle between structured and raw
@@ -97,8 +100,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   const [debouncedContent, setDebouncedContent] = useState(coverLetter)
 
   // Check if we are in dev or preview (not production)
-  const showBenchmarks = 
-    process.env.NODE_ENV === 'development' || 
+  const showBenchmarks =
+    process.env.NODE_ENV === 'development' ||
     process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' ||
     process.env.NEXT_PUBLIC_VERCEL_ENV === 'development'
 
@@ -129,7 +132,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   // Get keyword placement suggestions from API
   const handleGetKeywordSuggestions = useCallback(async (keyword: string): Promise<string[]> => {
     if (!formData) return []
-    
+
     try {
       const response = await fetch('/api/keyword-suggestions', {
         method: 'POST',
@@ -140,11 +143,11 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           jobDescription: formData.jobDescription,
         }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to get suggestions')
       }
-      
+
       const data = await response.json()
       return data.suggestions || []
     } catch (error) {
@@ -167,7 +170,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
     try {
       // Generate PDF using memoized document (uses debounced content)
       const blob = await pdf(memoizedPdfDocument).toBlob()
-      
+
       // Create download link
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -184,8 +187,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
   }, [memoizedPdfDocument])
 
   // Use wider container when editing in split view
-  const containerClass = isEditing && showSplitPreview 
-    ? "max-w-7xl mx-auto p-4 sm:p-6" 
+  const containerClass = isEditing && showSplitPreview
+    ? "max-w-7xl mx-auto p-4 sm:p-6"
     : "max-w-4xl mx-auto p-4 sm:p-6"
 
   return (
@@ -196,11 +199,10 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className={`flex items-center px-3 sm:px-4 py-2 ${
-                isEditing 
-                  ? 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600' 
-                  : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600'
-              } text-white rounded-md transition-colors duration-200 text-sm sm:text-base`}
+              className={`flex items-center px-3 sm:px-4 py-2 ${isEditing
+                ? 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600'
+                : 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600'
+                } text-white rounded-md transition-colors duration-200 text-sm sm:text-base`}
             >
               {isEditing ? (
                 <>
@@ -278,13 +280,13 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               </svg>
               ATS Match Analysis
             </h3>
-            
+
             <div className="flex flex-col md:flex-row gap-6">
               {/* Score Gauge */}
               <div className="flex-shrink-0 flex justify-center md:justify-start">
                 <ATSScoreGauge score={matchAnalysis.score} />
               </div>
-              
+
               {/* Analysis Details */}
               <div className="flex-1 space-y-4">
                 {/* Reasoning */}
@@ -294,7 +296,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                     {matchAnalysis.reasoning}
                   </p>
                 </div>
-                
+
                 {/* Missing Keywords - Interactive Pills */}
                 {matchAnalysis.missingKeywords && matchAnalysis.missingKeywords.length > 0 && (
                   <KeywordPills
@@ -305,6 +307,48 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                     isLoading={isLoading}
                     generatedContent={currentContent}
                   />
+                )}
+
+                {/* Privacy Indicator & Progress */}
+                {(processingMode || optimizeProgress) && (
+                  <div className="mt-4 flex items-center gap-3">
+                    {/* Processing Mode Indicator */}
+                    {processingMode && !optimizeProgress && (
+                      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${processingMode === 'edge'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        }`}>
+                        {processingMode === 'edge' ? (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                            </svg>
+                            <span>Runs on Device • Private</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
+                            </svg>
+                            <span>Runs in Cloud</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Download/Loading Progress */}
+                    {optimizeProgress && (
+                      <div className="flex-1 flex items-center gap-3">
+                        <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <span>{optimizeProgress}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -318,13 +362,13 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               <SparklesIcon className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
               Performance Metrics
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Time to First Byte */}
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-purple-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time to First Byte</div>
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {benchmarkMetrics.timeToFirstByte < 1000 
+                  {benchmarkMetrics.timeToFirstByte < 1000
                     ? `${benchmarkMetrics.timeToFirstByte.toFixed(0)}ms`
                     : `${(benchmarkMetrics.timeToFirstByte / 1000).toFixed(2)}s`
                   }
@@ -336,7 +380,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-indigo-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time to Analysis</div>
                 <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {benchmarkMetrics.timeToAnalysis < 1000 
+                  {benchmarkMetrics.timeToAnalysis < 1000
                     ? `${benchmarkMetrics.timeToAnalysis.toFixed(0)}ms`
                     : `${(benchmarkMetrics.timeToAnalysis / 1000).toFixed(2)}s`
                   }
@@ -348,7 +392,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-pink-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time to First Display</div>
                 <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                  {benchmarkMetrics.timeToFirstDisplay < 1000 
+                  {benchmarkMetrics.timeToFirstDisplay < 1000
                     ? `${benchmarkMetrics.timeToFirstDisplay.toFixed(0)}ms`
                     : `${(benchmarkMetrics.timeToFirstDisplay / 1000).toFixed(2)}s`
                   }
@@ -360,7 +404,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-blue-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Stream Time</div>
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {benchmarkMetrics.totalStreamTime < 1000 
+                  {benchmarkMetrics.totalStreamTime < 1000
                     ? `${benchmarkMetrics.totalStreamTime.toFixed(0)}ms`
                     : `${(benchmarkMetrics.totalStreamTime / 1000).toFixed(2)}s`
                   }
@@ -372,7 +416,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
               <div className="bg-white dark:bg-zinc-700 rounded-lg p-4 border border-green-100 dark:border-zinc-600">
                 <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total Display Time</div>
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {benchmarkMetrics.totalDisplayTime < 1000 
+                  {benchmarkMetrics.totalDisplayTime < 1000
                     ? `${benchmarkMetrics.totalDisplayTime.toFixed(0)}ms`
                     : `${(benchmarkMetrics.totalDisplayTime / 1000).toFixed(2)}s`
                   }
@@ -393,8 +437,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                   {benchmarkMetrics.totalDataSize > 1024 * 1024
                     ? `${(benchmarkMetrics.totalDataSize / 1024 / 1024).toFixed(2)}MB`
                     : benchmarkMetrics.totalDataSize > 1024
-                    ? `${(benchmarkMetrics.totalDataSize / 1024).toFixed(2)}KB`
-                    : `${benchmarkMetrics.totalDataSize}B`
+                      ? `${(benchmarkMetrics.totalDataSize / 1024).toFixed(2)}KB`
+                      : `${benchmarkMetrics.totalDataSize}B`
                   }
                 </div>
               </div>
@@ -422,41 +466,38 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                   <span className="text-xs text-gray-500 dark:text-gray-400">Editor:</span>
                   <button
                     onClick={() => setUseRawEditor(false)}
-                    className={`px-2.5 py-1 text-xs rounded-l-md border transition-colors ${
-                      !useRawEditor
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                    }`}
+                    className={`px-2.5 py-1 text-xs rounded-l-md border transition-colors ${!useRawEditor
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                      }`}
                   >
                     Structured
                   </button>
                   <button
                     onClick={() => setUseRawEditor(true)}
-                    className={`px-2.5 py-1 text-xs rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1 ${
-                      useRawEditor
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                    }`}
+                    className={`px-2.5 py-1 text-xs rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1 ${useRawEditor
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                      }`}
                   >
                     <CodeBracketIcon className="w-3 h-3" />
                     Raw
                   </button>
                 </div>
-                
+
                 {/* Split Preview Toggle - only visible on large screens */}
                 <button
                   onClick={() => setShowSplitPreview(!showSplitPreview)}
-                  className={`hidden lg:flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-colors ${
-                    showSplitPreview
-                      ? 'bg-purple-600 text-white border-purple-600'
-                      : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                  }`}
+                  className={`hidden lg:flex items-center gap-1 px-2.5 py-1 text-xs rounded-md border transition-colors ${showSplitPreview
+                    ? 'bg-purple-600 text-white border-purple-600'
+                    : 'bg-white dark:bg-zinc-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-zinc-600 hover:bg-gray-50 dark:hover:bg-zinc-700'
+                    }`}
                 >
                   <EyeIcon className="w-3.5 h-3.5" />
                   {showSplitPreview ? 'Hide Preview' : 'Show Preview'}
                 </button>
               </div>
-              
+
               {/* Split Layout: Editor + Preview */}
               <div className={`${showSplitPreview ? 'lg:grid lg:grid-cols-2 lg:gap-6' : ''}`}>
                 {/* Editor Column */}
@@ -482,7 +523,7 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                     />
                   )}
                 </div>
-                
+
                 {/* Live Preview Column - Desktop Only */}
                 {showSplitPreview && (
                   <div className="hidden lg:block min-w-0">
@@ -504,146 +545,146 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
           ) : (
             /* View Mode: Rendered Markdown */
             <div className="text-gray-900 dark:text-gray-100 leading-relaxed space-y-3 sm:space-y-4 text-sm sm:text-base">
-            {currentContent.split('\n').map((line, index) => {
-              const trimmedLine = line.trim()
-              
-              if (trimmedLine === '') {
-                return <div key={index} className="h-1 sm:h-2"></div>
-              }
-              
-              // Bold headers (name, section headers)
-              if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
-                const text = trimmedLine.replace(/\*\*/g, '')
-                if (index === 0) {
-                  // Name at the top
-                  return (
-                    <h1 key={index} className="text-lg sm:text-xl lg:text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
-                      {text}
-                    </h1>
-                  )
-                } else {
-                  // Section headers
-                  return (
-                    <h2 key={index} className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mt-4 sm:mt-6 mb-2 border-b border-gray-300 dark:border-zinc-600 pb-1">
-                      {text}
-                    </h2>
-                  )
+              {currentContent.split('\n').map((line, index) => {
+                const trimmedLine = line.trim()
+
+                if (trimmedLine === '') {
+                  return <div key={index} className="h-1 sm:h-2"></div>
                 }
-              }
-              
-              // Mixed bold text with following content (like **Job Title**Content)
-              if (trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
-                // Handle cases where multiple entries might be concatenated
-                const parts = trimmedLine.split('**')
-                const elements = []
-                
-                for (let i = 0; i < parts.length; i++) {
-                  const part = parts[i]
-                  
-                  if (part.trim() !== '') {
-                    // Check if this appears to be a new entry (bold text starting with capital letter)
-                    const isNewEntry = i > 0 && 
-                                     i % 2 === 1 && 
-                                     part.match(/^[A-Z]/) && 
-                                     !part.includes('•') &&
-                                     i > 1
-                    
-                    if (isNewEntry) {
-                      // Break to new line for new entries
-                      elements.push(<br key={`br-${i}`} />)
-                    }
-                    
-                    if (i % 2 === 1) {
-                      // Odd indices are bold text
-                      elements.push(
-                        <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">
-                          {part}
-                        </strong>
-                      )
-                    } else {
-                      // Even indices are normal text
-                      elements.push(<span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>)
-                    }
+
+                // Bold headers (name, section headers)
+                if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+                  const text = trimmedLine.replace(/\*\*/g, '')
+                  if (index === 0) {
+                    // Name at the top
+                    return (
+                      <h1 key={index} className="text-lg sm:text-xl lg:text-2xl font-bold text-center text-gray-900 dark:text-gray-100">
+                        {text}
+                      </h1>
+                    )
+                  } else {
+                    // Section headers
+                    return (
+                      <h2 key={index} className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 mt-4 sm:mt-6 mb-2 border-b border-gray-300 dark:border-zinc-600 pb-1">
+                        {text}
+                      </h2>
+                    )
                   }
                 }
-                
-                return (
-                  <div key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
-                    {elements}
-                  </div>
-                )
-              }
-              
-              // Contact info or job details with pipes
-              if (trimmedLine.includes('|')) {
-                return (
-                  <p key={index} className="text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
-                    {trimmedLine.split('|').map((part, i) => (
-                      <span key={i}>
-                        {part.trim()}
-                        {i < trimmedLine.split('|').length - 1 && <span className="mx-1 sm:mx-2">•</span>}
-                      </span>
-                    ))}
-                  </p>
-                )
-              }
-              
-              // Bullet points
-              if (trimmedLine.startsWith('*   ')) {
-                const bulletText = trimmedLine.replace('*   ', '')
-                return (
-                  <li key={index} className="ml-3 sm:ml-4 text-gray-800 dark:text-gray-300 text-xs sm:text-sm">
-                    {bulletText.split('**').map((part, i) => {
-                      if (i % 2 === 1) {
-                        // Odd indices are bold text (between **)
-                        return <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">{part}</strong>
+
+                // Mixed bold text with following content (like **Job Title**Content)
+                if (trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
+                  // Handle cases where multiple entries might be concatenated
+                  const parts = trimmedLine.split('**')
+                  const elements = []
+
+                  for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i]
+
+                    if (part.trim() !== '') {
+                      // Check if this appears to be a new entry (bold text starting with capital letter)
+                      const isNewEntry = i > 0 &&
+                        i % 2 === 1 &&
+                        part.match(/^[A-Z]/) &&
+                        !part.includes('•') &&
+                        i > 1
+
+                      if (isNewEntry) {
+                        // Break to new line for new entries
+                        elements.push(<br key={`br-${i}`} />)
                       }
-                      return <span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>
-                    })}
-                  </li>
-                )
-              }
-              
-              // Job titles or positions (text with pipe and dates)
-              if (trimmedLine.includes(' | ') && !trimmedLine.startsWith('*')) {
+
+                      if (i % 2 === 1) {
+                        // Odd indices are bold text
+                        elements.push(
+                          <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">
+                            {part}
+                          </strong>
+                        )
+                      } else {
+                        // Even indices are normal text
+                        elements.push(<span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>)
+                      }
+                    }
+                  }
+
+                  return (
+                    <div key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
+                      {elements}
+                    </div>
+                  )
+                }
+
+                // Contact info or job details with pipes
+                if (trimmedLine.includes('|')) {
+                  return (
+                    <p key={index} className="text-center text-gray-700 dark:text-gray-300 text-xs sm:text-sm">
+                      {trimmedLine.split('|').map((part, i) => (
+                        <span key={i}>
+                          {part.trim()}
+                          {i < trimmedLine.split('|').length - 1 && <span className="mx-1 sm:mx-2">•</span>}
+                        </span>
+                      ))}
+                    </p>
+                  )
+                }
+
+                // Bullet points
+                if (trimmedLine.startsWith('*   ')) {
+                  const bulletText = trimmedLine.replace('*   ', '')
+                  return (
+                    <li key={index} className="ml-3 sm:ml-4 text-gray-800 dark:text-gray-300 text-xs sm:text-sm">
+                      {bulletText.split('**').map((part, i) => {
+                        if (i % 2 === 1) {
+                          // Odd indices are bold text (between **)
+                          return <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">{part}</strong>
+                        }
+                        return <span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>
+                      })}
+                    </li>
+                  )
+                }
+
+                // Job titles or positions (text with pipe and dates)
+                if (trimmedLine.includes(' | ') && !trimmedLine.startsWith('*')) {
+                  return (
+                    <p key={index} className="font-semibold text-gray-900 dark:text-gray-200 text-xs sm:text-sm">
+                      {trimmedLine}
+                    </p>
+                  )
+                }
+
+                // Handle single asterisks for inline bold (*text*)
+                if (trimmedLine.includes('*') && !trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
+                  return (
+                    <p key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
+                      {trimmedLine.split('*').map((part, i) => {
+                        if (i % 2 === 1 && part.trim() !== '') {
+                          // Odd indices are bold text (between single *)
+                          return <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">{part}</strong>
+                        }
+                        return <span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>
+                      })}
+                    </p>
+                  )
+                }
+
+                // Regular paragraphs
                 return (
-                  <p key={index} className="font-semibold text-gray-900 dark:text-gray-200 text-xs sm:text-sm">
+                  <p key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
                     {trimmedLine}
                   </p>
                 )
-              }
-              
-              // Handle single asterisks for inline bold (*text*)
-              if (trimmedLine.includes('*') && !trimmedLine.includes('**') && !trimmedLine.startsWith('*   ')) {
-                return (
-                  <p key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
-                    {trimmedLine.split('*').map((part, i) => {
-                      if (i % 2 === 1 && part.trim() !== '') {
-                        // Odd indices are bold text (between single *)
-                        return <strong key={i} className="font-semibold text-gray-900 dark:text-gray-200">{part}</strong>
-                      }
-                      return <span key={i} className="text-gray-800 dark:text-gray-300">{part}</span>
-                    })}
-                  </p>
-                )
-              }
-              
-              // Regular paragraphs
-              return (
-                <p key={index} className="text-gray-800 dark:text-gray-300 text-xs sm:text-sm leading-relaxed">
-                  {trimmedLine}
-                </p>
-              )
-            })}
-          </div>
+              })}
+            </div>
           )}
         </div>
 
         {/* Interview Prep Section */}
         {formData && (
-          <InterviewQuestions 
-            resume={formData.resume} 
-            jobDescription={formData.jobDescription} 
+          <InterviewQuestions
+            resume={formData.resume}
+            jobDescription={formData.jobDescription}
           />
         )}
       </div>

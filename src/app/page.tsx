@@ -7,6 +7,7 @@ import DarkModeToggle from '@/components/DarkModeToggle'
 import ApplicationHistory from '@/components/ApplicationHistory'
 import { parseSSEStream, type SSEBenchmark } from '@/hooks/useSSEStream'
 import { useApplicationHistory } from '@/hooks/useApplicationHistory'
+import { useHybridInference } from '@/hooks/useHybridInference'
 
 interface FormData {
   jobDescription: string
@@ -45,6 +46,14 @@ export default function Home() {
     renameApplication,
     clearActive,
   } = useApplicationHistory()
+
+  // Hybrid inference for resume optimization (edge-first, cloud fallback)
+  const {
+    generate: optimizeResume,
+    processingMode,
+    progress: optimizeProgress,
+    isLoading: isOptimizingLocal,
+  } = useHybridInference()
 
   // Auto-save when generation completes
   const handleAutoSave = useCallback(() => {
@@ -96,10 +105,10 @@ export default function Home() {
     setFormData(data)
     setIncompleteText(null)
     setStatusMessage('Starting...')
-    
+
     // Start the timer BEFORE the network request
     const startTime = performance.now()
-    
+
     // If continuing, keep existing content; otherwise reset
     if (!continueFrom) {
       setCoverLetter('')
@@ -153,9 +162,9 @@ export default function Home() {
           }
         }
       }, startTime)
-      
+
       if (errorOccurred) return
-      
+
       // If stream didn't complete but we have partial text
       if (!result.completed && result.partialText.length > 100) {
         setIncompleteText(result.partialText)
@@ -188,31 +197,20 @@ export default function Home() {
 
   const handleOptimize = async (missingKeywords: string[]) => {
     if (!formData) return
-    
+
     setIsOptimizing(true)
     try {
-      const response = await fetch('/api/optimize-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resume: formData.resume,
-          missingKeywords,
-          jobDescription: formData.jobDescription,
-        }),
+      // Use hybrid inference - automatically routes to edge (local) or cloud (API)
+      const optimizedResume = await optimizeResume({
+        resume: formData.resume,
+        missingKeywords,
+        jobDescription: formData.jobDescription,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        alert(`Failed to optimize: ${errorData.error || response.statusText}`)
-        return
-      }
-
-      const { optimizedResume } = await response.json()
-      
       // Update the form data with optimized resume and regenerate
       const newFormData = { ...formData, resume: optimizedResume }
       setFormData(newFormData)
-      
+
       // Regenerate with the optimized resume
       handleGenerate(newFormData)
     } catch (error) {
@@ -326,10 +324,12 @@ export default function Home() {
               onOptimize={handleOptimize}
               onContinue={incompleteText ? handleContinueGeneration : undefined}
               isLoading={isLoading}
-              isOptimizing={isOptimizing}
+              isOptimizing={isOptimizing || isOptimizingLocal}
               isIncomplete={!!incompleteText}
               formData={formData ?? undefined}
               benchmarkMetrics={benchmarkMetrics ?? undefined}
+              processingMode={processingMode}
+              optimizeProgress={optimizeProgress}
             />
 
             <div className="text-center mt-6 sm:mt-8">
