@@ -109,7 +109,7 @@ export function constructGenerationPrompt(
   analysis: { score: number; reasoning: string; missingKeywords: string[] },
   continueFrom?: string
 ): string {
-  const continuationContext = continueFrom 
+  const continuationContext = continueFrom
     ? `\n\n=== CONTINUATION CONTEXT ===
 The previous generation was incomplete. Continue from where it left off.
 Do NOT repeat what has already been written. Pick up seamlessly.
@@ -270,3 +270,60 @@ export const ANALYSIS_RESPONSE_SCHEMA = {
   },
   required: ["matchAnalysis", "generatedDocument"],
 }
+
+// =============================================================================
+// UNIVERSAL PROMPTS (Model-Agnostic)
+// Compatible with both Llama-3.2 (local) and Gemini (cloud)
+// No Google SDK types required - pure string templates
+// =============================================================================
+
+/**
+ * Universal system prompt for resume optimization
+ * Works with any chat-completion compatible model
+ */
+export const OPTIMIZE_RESUME_SYSTEM_PROMPT = `You are an expert Resume Layout Engineer.
+Your job: Enhance the resume by naturally incorporating missing keywords.
+
+RULES:
+- ONLY enhance existing content - NEVER invent experiences or skills
+- Keywords must fit naturally into existing bullet points
+- Keep the original structure and format
+- Maintain truthful information, just optimize for ATS
+- Skip keywords that cannot be incorporated honestly
+
+FORMATTING:
+- Use "### Section Name" for headers
+- Use "- " for bullet points
+- Keep bullets to 1-2 lines
+- Use **bold** for company names and job titles
+
+CONSTRAINT:
+- Output MUST fit on ONE A4 page
+- Be extremely concise
+- Prioritize quantifiable achievements
+
+OUTPUT:
+Return ONLY the optimized resume in Markdown. No explanations, no code blocks.`
+
+/**
+ * Constructs the user prompt for resume optimization
+ * Universal format compatible with any model
+ */
+export function constructOptimizeResumePrompt(
+  resume: string,
+  jobDescription: string,
+  missingKeywords: string[]
+): string {
+  return `Resume to optimize:
+
+${resume}
+
+Job description for context:
+${jobDescription}
+
+Keywords to incorporate where truthful:
+${missingKeywords.join(', ')}
+
+Return the optimized resume.`
+}
+
