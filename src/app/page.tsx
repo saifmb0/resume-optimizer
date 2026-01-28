@@ -252,6 +252,26 @@ export default function Home() {
                 onRename={renameApplication}
                 onNewApplication={handleNewApplication}
               />
+              {/* Inference Mode Toggle */}
+              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+                <span className="hidden sm:inline">{forceCloud ? '☁️ Cloud' : '🛡️ Private'}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={forceCloud}
+                  onClick={() => setForceCloud(!forceCloud)}
+                  title={forceCloud ? 'Using cloud (saves battery)' : 'Using on-device AI (private)'}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${forceCloud
+                      ? 'bg-yellow-500'
+                      : 'bg-green-500'
+                    }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${forceCloud ? 'translate-x-4' : 'translate-x-0.5'
+                      }`}
+                  />
+                </button>
+              </label>
               <DarkModeToggle />
             </div>
           </div>

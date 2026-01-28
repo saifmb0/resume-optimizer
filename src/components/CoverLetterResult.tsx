@@ -311,8 +311,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                   />
                 )}
 
-                {/* Privacy Indicator & Progress */}
-                {(processingMode || optimizeProgress) && (
+                {/* Privacy Indicator & Progress - Only shown DURING optimization */}
+                {(isOptimizing || optimizeProgress) && (
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     {/* Processing Mode Indicator */}
                     {processingMode && !optimizeProgress && (
@@ -361,8 +361,8 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                           aria-checked={forceCloud}
                           onClick={() => onForceCloudChange(!forceCloud)}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${forceCloud
-                              ? 'bg-yellow-500'
-                              : 'bg-gray-300 dark:bg-gray-600'
+                            ? 'bg-yellow-500'
+                            : 'bg-gray-300 dark:bg-gray-600'
                             }`}
                         >
                           <span
