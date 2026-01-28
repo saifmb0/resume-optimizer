@@ -11,7 +11,15 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          
+          // WebGPU/SharedArrayBuffer requirements for WebLLM
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin'
+          },
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'require-corp'
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
@@ -48,7 +56,7 @@ const nextConfig: NextConfig = {
       }
     ]
   },
-  
+
   // Performance and security optimizations
   compress: true,
   poweredByHeader: false,
