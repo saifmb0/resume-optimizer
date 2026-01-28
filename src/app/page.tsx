@@ -8,6 +8,7 @@ import ApplicationHistory from '@/components/ApplicationHistory'
 import { parseSSEStream, type SSEBenchmark } from '@/hooks/useSSEStream'
 import { useApplicationHistory } from '@/hooks/useApplicationHistory'
 import { useHybridInference } from '@/hooks/useHybridInference'
+import { usePersistedState } from '@/hooks/usePersistedState'
 
 interface FormData {
   jobDescription: string
@@ -47,13 +48,16 @@ export default function Home() {
     clearActive,
   } = useApplicationHistory()
 
+  // User preference for forcing cloud processing (saves battery)
+  const [forceCloud, setForceCloud] = usePersistedState('cvmaker:forceCloud', false, 0)
+
   // Hybrid inference for resume optimization (edge-first, cloud fallback)
   const {
     generate: optimizeResume,
     processingMode,
     progress: optimizeProgress,
     isLoading: isOptimizingLocal,
-  } = useHybridInference()
+  } = useHybridInference({ forceCloud })
 
   // Auto-save when generation completes
   const handleAutoSave = useCallback(() => {
@@ -330,6 +334,8 @@ export default function Home() {
               benchmarkMetrics={benchmarkMetrics ?? undefined}
               processingMode={processingMode}
               optimizeProgress={optimizeProgress}
+              forceCloud={forceCloud}
+              onForceCloudChange={setForceCloud}
             />
 
             <div className="text-center mt-6 sm:mt-8">

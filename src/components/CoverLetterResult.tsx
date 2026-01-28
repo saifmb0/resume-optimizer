@@ -36,6 +36,8 @@ interface CoverLetterResultProps {
   // Hybrid inference props
   processingMode?: 'edge' | 'cloud'
   optimizeProgress?: string
+  forceCloud?: boolean
+  onForceCloudChange?: (value: boolean) => void
 }
 
 // ATS Score Gauge Component
@@ -89,7 +91,7 @@ function ATSScoreGauge({ score }: { score: number }) {
   )
 }
 
-export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, onContinue, isLoading, isOptimizing, isIncomplete, formData, benchmarkMetrics, processingMode, optimizeProgress }: CoverLetterResultProps) {
+export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegenerate, onOptimize, onContinue, isLoading, isOptimizing, isIncomplete, formData, benchmarkMetrics, processingMode, optimizeProgress, forceCloud, onForceCloudChange }: CoverLetterResultProps) {
   const [copied, setCopied] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [useRawEditor, setUseRawEditor] = useState(false) // Toggle between structured and raw
@@ -311,12 +313,12 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
 
                 {/* Privacy Indicator & Progress */}
                 {(processingMode || optimizeProgress) && (
-                  <div className="mt-4 flex items-center gap-3">
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
                     {/* Processing Mode Indicator */}
                     {processingMode && !optimizeProgress && (
                       <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${processingMode === 'edge'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                        : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
                         }`}>
                         {processingMode === 'edge' ? (
                           <>
@@ -347,6 +349,28 @@ export default function CoverLetterResult({ coverLetter, matchAnalysis, onRegene
                           <span>{optimizeProgress}</span>
                         </div>
                       </div>
+                    )}
+
+                    {/* Force Cloud Toggle */}
+                    {onForceCloudChange && !optimizeProgress && (
+                      <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 cursor-pointer ml-auto">
+                        <span>Use Cloud (saves battery)</span>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={forceCloud}
+                          onClick={() => onForceCloudChange(!forceCloud)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${forceCloud
+                              ? 'bg-yellow-500'
+                              : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${forceCloud ? 'translate-x-4' : 'translate-x-0.5'
+                              }`}
+                          />
+                        </button>
+                      </label>
                     )}
                   </div>
                 )}
