@@ -47,16 +47,30 @@ export function useHybridInference(
     const engineRef = useRef<MLCEngine | null>(null)
 
     // Determine processing mode based on GPU support and user preference
+    const hasWebGPU = isWebGPUSupported()
     const processingMode: ProcessingMode =
-        forceCloud || !isWebGPUSupported() ? 'cloud' : 'edge'
+        forceCloud || !hasWebGPU ? 'cloud' : 'edge'
+
+    // Log mode determination on mount/change
+    console.log('[HybridInference] Mode Determination:', {
+        hasWebGPU,
+        forceCloud,
+        selectedMode: processingMode,
+        reason: forceCloud ? 'User forced cloud' : !hasWebGPU ? 'No WebGPU support' : 'WebGPU available'
+    })
 
     /**
      * Initialize the WebLLM engine with progress tracking
      */
     const initEngine = useCallback(async (): Promise<MLCEngine> => {
         if (engineRef.current) {
+            console.log('[HybridInference:LOCAL] Engine already initialized, reusing')
             return engineRef.current
         }
+
+        console.log('[HybridInference:LOCAL] ⚡ Initializing WebLLM engine...')
+        console.log('[HybridInference:LOCAL] Model:', MODEL_ID)
+        const startTime = performance.now()
 
         setProgress('Initializing AI engine...')
 
@@ -64,8 +78,14 @@ export function useHybridInference(
             initProgressCallback: (report) => {
                 const percent = Math.round(report.progress * 100)
                 setProgress(`Downloading model: ${percent}%`)
+                if (percent % 25 === 0) {
+                    console.log(`[HybridInference:LOCAL] Download progress: ${percent}%`)
+                }
             },
         })
+
+        const elapsed = performance.now() - startTime
+        console.log(`[HybridInference:LOCAL] ✅ Engine initialized in ${elapsed.toFixed(0)}ms`)
 
         engineRef.current = engine
         setIsModelLoaded(true)
@@ -78,6 +98,10 @@ export function useHybridInference(
      * Generate optimized resume using local WebLLM
      */
     const generateLocal = useCallback(async (params: OptimizeParams): Promise<string> => {
+        console.log('[HybridInference:LOCAL] 🛡️ STARTING LOCAL GENERATION')
+        console.log('[HybridInference:LOCAL] This runs ENTIRELY on your device - NO network call')
+        const startTime = performance.now()
+
         const engine = await initEngine()
 
         setProgress('Generating...')
@@ -89,7 +113,10 @@ export function useHybridInference(
             params.missingKeywords
         )
 
+        console.log('[HybridInference:LOCAL] Prompt length:', userPrompt.length, 'chars')
+
         let output = ''
+        let tokenCount = 0
 
         const response = await engine.chat.completions.create({
             messages: [
@@ -104,7 +131,17 @@ export function useHybridInference(
         for await (const chunk of response) {
             const delta = chunk.choices[0]?.delta?.content || ''
             output += delta
+            tokenCount++
         }
+
+        const elapsed = performance.now() - startTime
+        console.log('[HybridInference:LOCAL] ✅ LOCAL GENERATION COMPLETE')
+        console.log('[HybridInference:LOCAL] Stats:', {
+            elapsed: `${elapsed.toFixed(0)}ms`,
+            tokens: tokenCount,
+            tokensPerSecond: (tokenCount / (elapsed / 1000)).toFixed(1),
+            outputLength: output.length
+        })
 
         return output
     }, [initEngine])
@@ -113,6 +150,10 @@ export function useHybridInference(
      * Generate optimized resume using server API (cloud fallback)
      */
     const generateCloud = useCallback(async (params: OptimizeParams): Promise<string> => {
+        console.log('[HybridInference:CLOUD] ☁️ STARTING CLOUD GENERATION')
+        console.log('[HybridInference:CLOUD] This calls /api/optimize-resume - NETWORK request')
+        const startTime = performance.now()
+
         setProgress('Optimizing via cloud...')
 
         const response = await fetch('/api/optimize-resume', {
@@ -127,6 +168,14 @@ export function useHybridInference(
         }
 
         const { optimizedResume } = await response.json()
+
+        const elapsed = performance.now() - startTime
+        console.log('[HybridInference:CLOUD] ✅ CLOUD GENERATION COMPLETE')
+        console.log('[HybridInference:CLOUD] Stats:', {
+            elapsed: `${elapsed.toFixed(0)}ms`,
+            outputLength: optimizedResume.length
+        })
+
         return optimizedResume
     }, [])
 

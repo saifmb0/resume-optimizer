@@ -18,7 +18,9 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp'
+            // Use 'credentialless' instead of 'require-corp' to allow WebLLM model downloads
+            // credentialless still enables SharedArrayBuffer while allowing no-cors fetches
+            value: 'credentialless'
           },
           {
             key: 'X-Content-Type-Options',
@@ -41,11 +43,14 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://vercel.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://vercel.live https://vercel.com blob:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://vercel.live https://vercel.com",
+              // WebLLM requires access to Hugging Face for model downloads
+              "connect-src 'self' data: blob: https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://vercel.live https://vercel.com https://huggingface.co https://*.huggingface.co https://raw.githubusercontent.com",
+              // WebLLM uses Web Workers
+              "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
               `frame-ancestors 'self' ${devFrameAncestors} https://seifeldin-mahmoud.vercel.app https://*.saifmb.com https://saifmb.com`.trim().replace(/\s+/g, ' '),
